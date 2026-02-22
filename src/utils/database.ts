@@ -16,6 +16,7 @@ export interface CurrentSession {
   config: { rows: number; cols: number; tileSize: number }
   data: number[][]
   tileTypes: string
+  savedMapId?: number
   savedAt: string
 }
 
@@ -40,11 +41,12 @@ function saveToStorage() {
   localStorage.setItem('mapEditorMaps', JSON.stringify(maps))
 }
 
-export function saveCurrentSession(config: { rows: number; cols: number; tileSize: number }, data: number[][], tileTypes: string) {
+export function saveCurrentSession(config: { rows: number; cols: number; tileSize: number }, data: number[][], tileTypes: string, savedMapId?: number) {
   const session: CurrentSession = {
     config,
     data,
     tileTypes,
+    savedMapId,
     savedAt: new Date().toISOString(),
   }
   localStorage.setItem(CURRENT_SESSION_KEY, JSON.stringify(session))
@@ -64,7 +66,21 @@ export function clearCurrentSession() {
   localStorage.removeItem(CURRENT_SESSION_KEY)
 }
 
-export function saveMap(name: string, rows: number, cols: number, tileSize: number, mapData: number[][], tileTypes?: string): number {
+export function saveMap(name: string, rows: number, cols: number, tileSize: number, mapData: number[][], tileTypes?: string, updateId?: number): number {
+  if (updateId) {
+    const existing = maps.find(m => m.id === updateId)
+    if (existing) {
+      existing.rows = rows
+      existing.cols = cols
+      existing.tileSize = tileSize
+      existing.data = mapData
+      existing.tileTypes = tileTypes
+      existing.updatedAt = new Date().toISOString()
+      saveToStorage()
+      return existing.id
+    }
+  }
+  
   const existing = maps.find(m => m.name === name)
   if (existing) {
     existing.rows = rows

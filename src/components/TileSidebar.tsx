@@ -53,15 +53,15 @@ export function TileSidebar({
         {tileTypes.map((tile) => (
           <div
             key={tile.id}
-            className={`flex items-center gap-2 p-2 rounded-lg transition-all group ${
+            onClick={() => onSelectTile(tile.id)}
+            className={`flex items-center gap-2 p-2 rounded-lg transition-all cursor-pointer group ${
               selectedTile === tile.id
                 ? 'bg-gray-700 ring-2 ring-emerald-400'
                 : 'hover:bg-gray-700'
             }`}
           >
-            <button
-              onClick={() => onSelectTile(tile.id)}
-              className="w-10 h-10 rounded-lg border-2 border-gray-600 flex-shrink-0"
+            <div
+              className="w-10 h-10 rounded-lg border-2 border-gray-600 flex-shrink-0 pointer-events-none"
               style={{ backgroundColor: tile.color }}
             />
             <div className="flex-1 min-w-0">

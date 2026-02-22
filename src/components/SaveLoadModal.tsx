@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { initDatabase, getAllMaps, saveMap, loadMap, deleteMap, type SavedMap } from '../utils/database'
+import { initDatabase, getAllMaps, saveMap, loadMap, deleteMap, getCurrentSession, saveCurrentSession, type SavedMap } from '../utils/database'
 import type { CustomTileType } from '../hooks/useTileTypes'
 
 interface SaveLoadModalProps {
@@ -16,13 +16,27 @@ export function SaveLoadModal({ mode, mapData, config, tileTypes, onLoad, onClos
   const [saveName, setSaveName] = useState('')
   const [loading, setLoading] = useState(true)
   const [message, setMessage] = useState('')
+  const [currentSavedId, setCurrentSavedId] = useState<number | undefined>()
 
   useEffect(() => {
     initDatabase().then(() => {
-      setMaps(getAllMaps())
+      const allMaps = getAllMaps()
+      setMaps(allMaps)
+      
+      if (mode === 'save') {
+        const session = getCurrentSession()
+        if (session?.savedMapId) {
+          const savedMap = allMaps.find(m => m.id === session.savedMapId)
+          if (savedMap) {
+            setSaveName(savedMap.name)
+            setCurrentSavedId(session.savedMapId)
+          }
+        }
+      }
+      
       setLoading(false)
     })
-  }, [])
+  }, [mode])
 
   const handleSave = () => {
     if (!saveName.trim()) {
@@ -30,7 +44,9 @@ export function SaveLoadModal({ mode, mapData, config, tileTypes, onLoad, onClos
       return
     }
     const tileTypesJson = tileTypes ? JSON.stringify(tileTypes) : undefined
-    saveMap(saveName.trim(), config.rows, config.cols, config.tileSize, mapData, tileTypesJson)
+    const id = saveMap(saveName.trim(), config.rows, config.cols, config.tileSize, mapData, tileTypesJson)
+    saveCurrentSession(config, mapData, tileTypesJson || '', id)
+    setCurrentSavedId(id)
     setMessage('Saved!')
     setTimeout(() => {
       setMaps(getAllMaps())
@@ -76,6 +92,11 @@ export function SaveLoadModal({ mode, mapData, config, tileTypes, onLoad, onClos
               />
             </div>
             <div className="p-3 bg-gray-700 rounded-lg text-sm">
+              {currentSavedId ? (
+                <p className="text-blue-400">Updating existing save</p>
+              ) : (
+                <p className="text-gray-400">Saving as new map</p>
+              )}
               <p className="text-gray-400">Size: {config.cols}×{config.rows} tiles</p>
               {tileTypes && <p className="text-gray-400">Tile types: {tileTypes.length}</p>}
             </div>
