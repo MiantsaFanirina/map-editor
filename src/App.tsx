@@ -8,10 +8,18 @@ function App() {
   const [config, setConfig] = useState<MapConfig | null>(null)
   const [wentBack, setWentBack] = useState(false)
   const [mapKey, setMapKey] = useState(0)
+  const [mapData, setMapData] = useState<number[][] | null>(null)
 
   useEffect(() => {
     initDatabase()
   }, [])
+
+  const handleStart = (newConfig: MapConfig, data?: number[][] | null) => {
+    setConfig(newConfig)
+    setMapData(data || null)
+    setWentBack(false)
+    setMapKey(k => k + 1)
+  }
 
   const handleLoadMap = (savedMap: SavedMap) => {
     setConfig({
@@ -23,8 +31,6 @@ function App() {
     setWentBack(false)
     setMapKey(k => k + 1)
   }
-
-  const [mapData, setMapData] = useState<number[][] | null>(null)
 
   if (config && !wentBack) {
     return (
@@ -40,7 +46,7 @@ function App() {
 
   return (
     <SetupScreen
-      onStart={(newConfig) => { setConfig(newConfig); setMapData(null); setWentBack(false) }}
+      onStart={handleStart}
       onBack={config ? () => setWentBack(false) : undefined}
     />
   )
