@@ -1,15 +1,18 @@
 import type { Camera, MapConfig, Point } from '../types'
 import { TILE_TYPES } from '../constants/tiles'
+import type { SelectionShape } from '../constants/tiles'
 
 interface RenderOptions {
   canvas: HTMLCanvasElement
   camera: Camera
   mapData: number[][]
   config: MapConfig
-  rectSelection?: {
+  selection?: {
     start: Point | null
     end: Point | null
+    shape: SelectionShape
   }
+  trianglePoints?: Point[]
 }
 
 export function renderCanvas({
@@ -17,7 +20,8 @@ export function renderCanvas({
   camera,
   mapData,
   config,
-  rectSelection,
+  selection,
+  trianglePoints,
 }: RenderOptions): void {
   const ctx = canvas.getContext('2d')
   if (!ctx) return
@@ -92,31 +96,93 @@ export function renderCanvas({
     }
   }
 
-  if (rectSelection?.start && rectSelection?.end) {
-    const { start, end } = rectSelection
+  if (selection?.start && selection?.end) {
+    const { start, end, shape } = selection
     const minX = Math.min(start.x, end.x)
     const maxX = Math.max(start.x, end.x)
     const minY = Math.min(start.y, end.y)
     const maxY = Math.max(start.y, end.y)
-
+    
+    const centerX = (minX + maxX) / 2 + 0.5
+    const centerY = (minY + maxY) / 2 + 0.5
+    const radiusX = (maxX - minX + 1) / 2
+    const radiusY = (maxY - minY + 1) / 2
+    
     ctx.strokeStyle = '#fbbf24'
     ctx.lineWidth = 2 / camera.zoom
     ctx.setLineDash([5 / camera.zoom, 5 / camera.zoom])
-    ctx.strokeRect(
-      minX * config.tileSize,
-      minY * config.tileSize,
-      (maxX - minX + 1) * config.tileSize,
-      (maxY - minY + 1) * config.tileSize
-    )
-    ctx.setLineDash([])
-
     ctx.fillStyle = 'rgba(251, 191, 36, 0.3)'
-    ctx.fillRect(
-      minX * config.tileSize,
-      minY * config.tileSize,
-      (maxX - minX + 1) * config.tileSize,
-      (maxY - minY + 1) * config.tileSize
-    )
+    
+    if (shape === 'rectangle') {
+      ctx.strokeRect(
+        minX * config.tileSize,
+        minY * config.tileSize,
+        (maxX - minX + 1) * config.tileSize,
+        (maxY - minY + 1) * config.tileSize
+      )
+      ctx.fillRect(
+        minX * config.tileSize,
+        minY * config.tileSize,
+        (maxX - minX + 1) * config.tileSize,
+        (maxY - minY + 1) * config.tileSize
+      )
+    } else if (shape === 'circle') {
+      ctx.beginPath()
+      ctx.ellipse(
+        centerX * config.tileSize,
+        centerY * config.tileSize,
+        radiusX * config.tileSize,
+        radiusY * config.tileSize,
+        0, 0, Math.PI * 2
+      )
+      ctx.stroke()
+      ctx.fill()
+    } else if (shape === 'line') {
+      ctx.beginPath()
+      ctx.moveTo((start.x + 0.5) * config.tileSize, (start.y + 0.5) * config.tileSize)
+      ctx.lineTo((end.x + 0.5) * config.tileSize, (end.y + 0.5) * config.tileSize)
+      ctx.lineWidth = 4 / camera.zoom
+      ctx.stroke()
+    } else if (shape === 'fill') {
+      ctx.fillStyle = 'rgba(251, 191, 36, 0.15)'
+      ctx.fillRect(0, 0, config.cols * config.tileSize, config.rows * config.tileSize)
+      ctx.strokeStyle = '#fbbf24'
+      ctx.lineWidth = 2 / camera.zoom
+      ctx.strokeRect(0, 0, config.cols * config.tileSize, config.rows * config.tileSize)
+    }
+    
+    ctx.setLineDash([])
+  }
+  
+  if (trianglePoints && trianglePoints.length > 0) {
+    ctx.fillStyle = '#f97316'
+    ctx.strokeStyle = '#fbbf24'
+    ctx.lineWidth = 2 / camera.zoom
+    
+    for (const point of trianglePoints) {
+      const cx = (point.x + 0.5) * config.tileSize
+      const cy = (point.y + 0.5) * config.tileSize
+      const radius = config.tileSize * 0.3
+      
+      ctx.beginPath()
+      ctx.arc(cx, cy, radius, 0, Math.PI * 2)
+      ctx.fill()
+      ctx.stroke()
+    }
+    
+    if (trianglePoints.length >= 2) {
+      ctx.beginPath()
+      ctx.moveTo((trianglePoints[0].x + 0.5) * config.tileSize, (trianglePoints[0].y + 0.5) * config.tileSize)
+      ctx.lineTo((trianglePoints[1].x + 0.5) * config.tileSize, (trianglePoints[1].y + 0.5) * config.tileSize)
+      if (trianglePoints.length >= 3) {
+        ctx.lineTo((trianglePoints[2].x + 0.5) * config.tileSize, (trianglePoints[2].y + 0.5) * config.tileSize)
+        ctx.closePath()
+      }
+      ctx.strokeStyle = '#fbbf24'
+      ctx.setLineDash([5 / camera.zoom, 5 / camera.zoom])
+      ctx.stroke()
+      ctx.setLineDash([])
+    }
   }
 
   ctx.restore()

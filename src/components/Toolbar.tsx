@@ -8,6 +8,9 @@ interface ToolbarProps {
   onRedo: () => void
   onPreview: () => void
   onDownload: () => void
+  onSave: () => void
+  onLoad: () => void
+  onImport: () => void
   onTutorial: () => void
   onNewMap: () => void
 }
@@ -20,6 +23,9 @@ export function Toolbar({
   onRedo,
   onPreview,
   onDownload,
+  onSave,
+  onLoad,
+  onImport,
   onTutorial,
   onNewMap,
 }: ToolbarProps) {
@@ -28,48 +34,81 @@ export function Toolbar({
       <div className="flex items-center gap-4">
         <h1 className="text-xl font-bold text-emerald-400">Map Editor</h1>
         <span className="text-sm text-gray-400">
-          {config.cols}×{config.rows} • {config.tileSize}px tiles
+          {config.cols}×{config.rows} • {config.tileSize}px
         </span>
       </div>
       
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-2">
         <button
           onClick={onUndo}
           disabled={!canUndo}
-          className="px-4 py-2 bg-gray-600 hover:bg-gray-500 disabled:opacity-40 disabled:cursor-not-allowed rounded-lg font-medium transition-colors shadow-md"
+          title="Undo (Ctrl+Z)"
+          className="w-10 h-10 flex items-center justify-center bg-gray-600 hover:bg-gray-500 disabled:opacity-40 disabled:cursor-not-allowed rounded-lg transition-colors shadow-md text-lg"
         >
-          Undo (Ctrl+Z)
+          ↩
         </button>
         <button
           onClick={onRedo}
           disabled={!canRedo}
-          className="px-4 py-2 bg-gray-600 hover:bg-gray-500 disabled:opacity-40 disabled:cursor-not-allowed rounded-lg font-medium transition-colors shadow-md"
+          title="Redo (Ctrl+Y)"
+          className="w-10 h-10 flex items-center justify-center bg-gray-600 hover:bg-gray-500 disabled:opacity-40 disabled:cursor-not-allowed rounded-lg transition-colors shadow-md text-lg"
         >
-          Redo (Ctrl+Y)
+          ↪
+        </button>
+        
+        <div className="w-px h-8 bg-gray-600 mx-1" />
+        
+        <button
+          onClick={onSave}
+          title="Save to Database"
+          className="w-10 h-10 flex items-center justify-center bg-blue-600 hover:bg-blue-500 rounded-lg transition-colors shadow-md text-lg"
+        >
+          💾
         </button>
         <button
-          onClick={onPreview}
-          className="px-4 py-2 bg-amber-600 hover:bg-amber-500 rounded-lg font-medium transition-colors shadow-md"
+          onClick={onLoad}
+          title="Load from Database"
+          className="w-10 h-10 flex items-center justify-center bg-blue-600 hover:bg-blue-500 rounded-lg transition-colors shadow-md text-lg"
         >
-          Preview TXT
+          📂
+        </button>
+        <button
+          onClick={onImport}
+          title="Import from TXT"
+          className="w-10 h-10 flex items-center justify-center bg-blue-600 hover:bg-blue-500 rounded-lg transition-colors shadow-md text-lg"
+        >
+          📥
+        </button>
+        
+        <div className="w-px h-8 bg-gray-600 mx-1" />
+        
+        <button
+          onClick={onPreview}
+          title="Preview"
+          className="w-10 h-10 flex items-center justify-center bg-amber-600 hover:bg-amber-500 rounded-lg transition-colors shadow-md text-lg"
+        >
+          👁
         </button>
         <button
           onClick={onDownload}
-          className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 rounded-lg font-medium transition-colors shadow-md"
+          title="Download"
+          className="w-10 h-10 flex items-center justify-center bg-emerald-600 hover:bg-emerald-500 rounded-lg transition-colors shadow-md text-lg"
         >
-          Download TXT
+          ↓
         </button>
         <button
           onClick={onTutorial}
-          className="px-4 py-2 bg-purple-600 hover:bg-purple-500 rounded-lg font-medium transition-colors shadow-md"
+          title="Tutorial"
+          className="w-10 h-10 flex items-center justify-center bg-purple-600 hover:bg-purple-500 rounded-lg transition-colors shadow-md text-lg"
         >
-          Tutorial
+          ?
         </button>
         <button
           onClick={onNewMap}
-          className="px-4 py-2 bg-gray-600 hover:bg-gray-500 rounded-lg font-medium transition-colors shadow-md"
+          title="New Map"
+          className="w-10 h-10 flex items-center justify-center bg-gray-600 hover:bg-gray-500 rounded-lg transition-colors shadow-md text-lg"
         >
-          New Map
+          +
         </button>
       </div>
     </div>

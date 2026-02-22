@@ -1,41 +1,88 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useRef } from 'react'
 import { MAX_HISTORY } from '../constants/tiles'
 
-export function useHistory(_initialMap: number[][]) {
-  const [history, setHistory] = useState<number[][][]>([])
-  const [historyIndex, setHistoryIndex] = useState(-1)
+export function useHistory(initialMap: number[][]) {
+  const [, setTick] = useState(0)
+  const historyRef = useRef<number[][][]>([initialMap.map(row => [...row])])
+  const historyIndexRef = useRef(0)
+  const isActionInProgress = useRef(false)
+  const initialMapRef = useRef<number[][] | null>(null)
+  
+  const forceUpdate = useCallback(() => {
+    setTick(t => t + 1)
+  }, [])
+  
+  const startAction = useCallback((currentMap: number[][]) => {
+    if (isActionInProgress.current) return
+    isActionInProgress.current = true
+    initialMapRef.current = currentMap.map(row => [...row])
+  }, [])
+  
+  const endAction = useCallback((finalMap: number[][]) => {
+    if (!isActionInProgress.current || !initialMapRef.current) {
+      isActionInProgress.current = false
+      return
+    }
+    
+    const hasChanged = JSON.stringify(initialMapRef.current) !== JSON.stringify(finalMap)
+    isActionInProgress.current = false
+    initialMapRef.current = null
+    
+    if (!hasChanged) return
+    
+    const currentIndex = historyIndexRef.current
+    historyRef.current = historyRef.current.slice(0, currentIndex + 1)
+    historyRef.current.push(finalMap.map(row => [...row]))
+    
+    if (historyRef.current.length > MAX_HISTORY) {
+      historyRef.current.shift()
+    } else {
+      historyIndexRef.current++
+    }
+    forceUpdate()
+  }, [forceUpdate])
 
-  const saveToHistory = useCallback((newMap: number[][]) => {
-    setHistory(prev => {
-      const newHistory = prev.slice(0, historyIndex + 1)
-      newHistory.push(newMap.map(row => [...row]))
-      if (newHistory.length > MAX_HISTORY) newHistory.shift()
-      return newHistory
-    })
-    setHistoryIndex(prev => Math.min(prev + 1, MAX_HISTORY - 1))
-  }, [historyIndex])
+  const forceSave = useCallback((newMap: number[][]) => {
+    isActionInProgress.current = false
+    initialMapRef.current = null
+    
+    const currentIndex = historyIndexRef.current
+    historyRef.current = historyRef.current.slice(0, currentIndex + 1)
+    historyRef.current.push(newMap.map(row => [...row]))
+    
+    if (historyRef.current.length > MAX_HISTORY) {
+      historyRef.current.shift()
+    } else {
+      historyIndexRef.current++
+    }
+    forceUpdate()
+  }, [forceUpdate])
 
   const undo = useCallback((): number[][] | null => {
-    if (historyIndex > 0) {
-      setHistoryIndex(prev => prev - 1)
-      return history[historyIndex - 1].map(row => [...row])
+    if (historyIndexRef.current > 0) {
+      historyIndexRef.current--
+      forceUpdate()
+      return historyRef.current[historyIndexRef.current]?.map(row => [...row]) || null
     }
     return null
-  }, [history, historyIndex])
+  }, [forceUpdate])
 
   const redo = useCallback((): number[][] | null => {
-    if (historyIndex < history.length - 1) {
-      setHistoryIndex(prev => prev + 1)
-      return history[historyIndex + 1].map(row => [...row])
+    if (historyIndexRef.current < historyRef.current.length - 1) {
+      historyIndexRef.current++
+      forceUpdate()
+      return historyRef.current[historyIndexRef.current]?.map(row => [...row]) || null
     }
     return null
-  }, [history, historyIndex])
+  }, [forceUpdate])
 
-  const canUndo = historyIndex > 0
-  const canRedo = historyIndex < history.length - 1
+  const canUndo = historyIndexRef.current > 0
+  const canRedo = historyIndexRef.current < historyRef.current.length - 1
 
   return {
-    saveToHistory,
+    startAction,
+    endAction,
+    forceSave,
     undo,
     redo,
     canUndo,
