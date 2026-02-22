@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { importFromTxt } from '../utils/database'
 
 interface ImportModalProps {
-  onImport: (data: { rows: number; cols: number; data: number[][] }) => void
+  onImport: (data: { rows: number; cols: number; data: number[][]; tileTypes?: string }) => void
   onClose: () => void
 }
 
@@ -56,7 +56,7 @@ export function ImportModal({ onImport, onClose }: ImportModalProps) {
             <textarea
               value={content}
               onChange={(e) => { setContent(e.target.value); setError('') }}
-              placeholder="0 0 0 0&#10;0 1 1 0&#10;0 1 1 0&#10;0 0 0 0"
+              placeholder="MAP&#10;0 0 0&#10;0 1 1&#10;&#10;TILES&#10;0:#4ade80:Grass&#10;1:#374151:Wall"
               className="w-full h-40 px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white font-mono text-sm focus:ring-2 focus:ring-emerald-400"
             />
           </div>

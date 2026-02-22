@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react'
 import type { MapConfig } from '../types'
 import { DEFAULT_TILE_SIZE } from '../constants/tiles'
-import { initDatabase, getAllMaps, loadMap, deleteMap, importFromTxt, type SavedMap } from '../utils/database'
+import { getAllMaps, loadMap, deleteMap, importFromTxt, getCurrentSession, initDatabase, type SavedMap } from '../utils/database'
 
 interface SetupScreenProps {
-  onStart: (config: MapConfig, data?: number[][]) => void
+  onStart: (config: MapConfig, data?: number[][], tileTypes?: string) => void
   onBack?: () => void
 }
 
@@ -20,6 +20,18 @@ export function SetupScreen({ onStart, onBack }: SetupScreenProps) {
   const [importText, setImportText] = useState('')
   const [importError, setImportError] = useState('')
   const [loading, setLoading] = useState(true)
+  const [currentSession, setCurrentSession] = useState<{ config: MapConfig; data: number[][]; tileTypes: string } | null>(null)
+
+  useEffect(() => {
+    const session = getCurrentSession()
+    if (session) {
+      setCurrentSession({
+        config: session.config,
+        data: session.data,
+        tileTypes: session.tileTypes,
+      })
+    }
+  }, [])
 
   useEffect(() => {
     if (activeTab === 'saved') {
@@ -73,6 +85,14 @@ export function SetupScreen({ onStart, onBack }: SetupScreenProps) {
             Map Editor
           </h1>
           <p className="text-gray-400 mt-2">Create, edit, and manage your tile-based maps</p>
+          {currentSession && (
+            <button
+              onClick={() => onStart(currentSession.config, currentSession.data, currentSession.tileTypes)}
+              className="mt-4 px-6 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-semibold rounded-lg transition-colors"
+            >
+              ▶ Resume Editing
+            </button>
+          )}
         </div>
 
         {/* Tabs */}

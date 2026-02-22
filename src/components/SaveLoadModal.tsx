@@ -1,15 +1,17 @@
 import { useState, useEffect } from 'react'
 import { initDatabase, getAllMaps, saveMap, loadMap, deleteMap, type SavedMap } from '../utils/database'
+import type { CustomTileType } from '../hooks/useTileTypes'
 
 interface SaveLoadModalProps {
   mode: 'save' | 'load'
   mapData: number[][]
   config: { rows: number; cols: number; tileSize: number }
+  tileTypes?: CustomTileType[]
   onLoad?: (map: SavedMap) => void
   onClose: () => void
 }
 
-export function SaveLoadModal({ mode, mapData, config, onLoad, onClose }: SaveLoadModalProps) {
+export function SaveLoadModal({ mode, mapData, config, tileTypes, onLoad, onClose }: SaveLoadModalProps) {
   const [maps, setMaps] = useState<SavedMap[]>([])
   const [saveName, setSaveName] = useState('')
   const [loading, setLoading] = useState(true)
@@ -27,7 +29,8 @@ export function SaveLoadModal({ mode, mapData, config, onLoad, onClose }: SaveLo
       setMessage('Please enter a name')
       return
     }
-    saveMap(saveName.trim(), config.rows, config.cols, config.tileSize, mapData)
+    const tileTypesJson = tileTypes ? JSON.stringify(tileTypes) : undefined
+    saveMap(saveName.trim(), config.rows, config.cols, config.tileSize, mapData, tileTypesJson)
     setMessage('Saved!')
     setTimeout(() => {
       setMaps(getAllMaps())
@@ -74,6 +77,7 @@ export function SaveLoadModal({ mode, mapData, config, onLoad, onClose }: SaveLo
             </div>
             <div className="p-3 bg-gray-700 rounded-lg text-sm">
               <p className="text-gray-400">Size: {config.cols}×{config.rows} tiles</p>
+              {tileTypes && <p className="text-gray-400">Tile types: {tileTypes.length}</p>}
             </div>
             {message && <p className="text-emerald-400 text-sm">{message}</p>}
             <button
@@ -99,7 +103,7 @@ export function SaveLoadModal({ mode, mapData, config, onLoad, onClose }: SaveLo
                     </div>
                     <button
                       onClick={() => handleDelete(m.id)}
-                      className="px- bg-red-6003 py-1 hover:bg-red-500 rounded text-sm"
+                      className="px-3 py-1 bg-red-600 hover:bg-red-500 rounded text-sm"
                     >
                       🗑
                     </button>

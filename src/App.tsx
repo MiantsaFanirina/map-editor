@@ -9,14 +9,16 @@ function App() {
   const [wentBack, setWentBack] = useState(false)
   const [mapKey, setMapKey] = useState(0)
   const [mapData, setMapData] = useState<number[][] | null>(null)
+  const [initialTileTypes, setInitialTileTypes] = useState<string | undefined>()
 
   useEffect(() => {
     initDatabase()
   }, [])
 
-  const handleStart = (newConfig: MapConfig, data?: number[][] | null) => {
+  const handleStart = (newConfig: MapConfig, data?: number[][] | null, tileTypes?: string) => {
     setConfig(newConfig)
     setMapData(data || null)
+    setInitialTileTypes(tileTypes)
     setWentBack(false)
     setMapKey(k => k + 1)
   }
@@ -37,6 +39,7 @@ function App() {
       <MapEditor
         key={mapKey}
         initialData={mapData}
+        initialTileTypes={initialTileTypes}
         config={config}
         onBack={() => { setWentBack(true) }}
         onLoadMap={handleLoadMap}

@@ -1,46 +1,3 @@
-import initSqlJs, { type Database } from 'sql.js'
-
-let db: Database | null = null
-let initialized = false
-
-export async function initDatabase(): Promise<void> {
-  if (initialized) return
-  
-  const SQL = await initSqlJs({
-    locateFile: (file: string) => `https://sql.js.org/dist/${file}`,
-  })
-  
-  const savedData = localStorage.getItem('mapEditorDB')
-  if (savedData) {
-    const data = Uint8Array.from(atob(savedData), c => c.charCodeAt(0))
-    db = new SQL.Database(data)
-  } else {
-    db = new SQL.Database()
-  }
-  
-  db.run(`
-    CREATE TABLE IF NOT EXISTS maps (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      name TEXT NOT NULL,
-      rows INTEGER NOT NULL,
-      cols INTEGER NOT NULL,
-      tileSize INTEGER NOT NULL,
-      data TEXT NOT NULL,
-      createdAt TEXT DEFAULT CURRENT_TIMESTAMP,
-      updatedAt TEXT DEFAULT CURRENT_TIMESTAMP
-    )
-  `)
-  
-  initialized = true
-}
-
-export function saveDatabase(): void {
-  if (!db) return
-  const data = db.export()
-  const base64 = btoa(String.fromCharCode(...data))
-  localStorage.setItem('mapEditorDB', base64)
-}
-
 export interface SavedMap {
   id: number
   name: string
@@ -48,89 +5,137 @@ export interface SavedMap {
   cols: number
   tileSize: number
   data: number[][]
+  tileTypes?: string
   createdAt: string
   updatedAt: string
 }
 
-export function saveMap(name: string, rows: number, cols: number, tileSize: number, mapData: number[][]): number {
-  if (!db) return -1
-  
-  const dataStr = JSON.stringify(mapData)
-  
-  const existing = db.exec(`SELECT id FROM maps WHERE name = '${name}'`)
-  if (existing.length > 0 && existing[0].values.length > 0) {
-    const id = existing[0].values[0][0] as number
-    db.run(
-      `UPDATE maps SET rows = ?, cols = ?, tileSize = ?, data = ?, updatedAt = CURRENT_TIMESTAMP WHERE id = ?`,
-      [rows, cols, tileSize, dataStr, id]
-    )
-    saveDatabase()
-    return id
+const CURRENT_SESSION_KEY = 'mapEditorCurrentSession'
+
+export interface CurrentSession {
+  config: { rows: number; cols: number; tileSize: number }
+  data: number[][]
+  tileTypes: string
+  savedAt: string
+}
+
+let maps: SavedMap[] = []
+let nextId = 1
+
+export function initDatabase(): Promise<void> {
+  const saved = localStorage.getItem('mapEditorMaps')
+  if (saved) {
+    try {
+      maps = JSON.parse(saved)
+      nextId = Math.max(0, ...maps.map(m => m.id)) + 1
+    } catch {
+      maps = []
+      nextId = 1
+    }
+  }
+  return Promise.resolve()
+}
+
+function saveToStorage() {
+  localStorage.setItem('mapEditorMaps', JSON.stringify(maps))
+}
+
+export function saveCurrentSession(config: { rows: number; cols: number; tileSize: number }, data: number[][], tileTypes: string) {
+  const session: CurrentSession = {
+    config,
+    data,
+    tileTypes,
+    savedAt: new Date().toISOString(),
+  }
+  localStorage.setItem(CURRENT_SESSION_KEY, JSON.stringify(session))
+}
+
+export function getCurrentSession(): CurrentSession | null {
+  const saved = localStorage.getItem(CURRENT_SESSION_KEY)
+  if (!saved) return null
+  try {
+    return JSON.parse(saved)
+  } catch {
+    return null
+  }
+}
+
+export function clearCurrentSession() {
+  localStorage.removeItem(CURRENT_SESSION_KEY)
+}
+
+export function saveMap(name: string, rows: number, cols: number, tileSize: number, mapData: number[][], tileTypes?: string): number {
+  const existing = maps.find(m => m.name === name)
+  if (existing) {
+    existing.rows = rows
+    existing.cols = cols
+    existing.tileSize = tileSize
+    existing.data = mapData
+    existing.tileTypes = tileTypes
+    existing.updatedAt = new Date().toISOString()
+    saveToStorage()
+    return existing.id
   }
   
-  db.run(
-    `INSERT INTO maps (name, rows, cols, tileSize, data) VALUES (?, ?, ?, ?, ?)`,
-    [name, rows, cols, tileSize, dataStr]
-  )
-  
-  const result = db.exec(`SELECT last_insert_rowid()`)
-  const id = result[0].values[0][0] as number
-  saveDatabase()
+  const id = nextId++
+  const newMap: SavedMap = {
+    id,
+    name,
+    rows,
+    cols,
+    tileSize,
+    data: mapData,
+    tileTypes,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  }
+  maps.push(newMap)
+  saveToStorage()
   return id
 }
 
 export function loadMap(id: number): SavedMap | null {
-  if (!db) return null
-  
-  const result = db.exec(`SELECT id, name, rows, cols, tileSize, data, createdAt, updatedAt FROM maps WHERE id = ${id}`)
-  if (result.length === 0 || result[0].values.length === 0) return null
-  
-  const row = result[0].values[0]
-  return {
-    id: row[0] as number,
-    name: row[1] as string,
-    rows: row[2] as number,
-    cols: row[3] as number,
-    tileSize: row[4] as number,
-    data: JSON.parse(row[5] as string),
-    createdAt: row[6] as string,
-    updatedAt: row[7] as string,
-  }
+  return maps.find(m => m.id === id) || null
 }
 
 export function getAllMaps(): SavedMap[] {
-  if (!db) return []
-  
-  const result = db.exec(`SELECT id, name, rows, cols, tileSize, data, createdAt, updatedAt FROM maps ORDER BY updatedAt DESC`)
-  if (result.length === 0) return []
-  
-  return result[0].values.map(row => ({
-    id: row[0] as number,
-    name: row[1] as string,
-    rows: row[2] as number,
-    cols: row[3] as number,
-    tileSize: row[4] as number,
-    data: JSON.parse(row[5] as string),
-    createdAt: row[6] as string,
-    updatedAt: row[7] as string,
-  }))
+  return [...maps].sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
 }
 
 export function deleteMap(id: number): void {
-  if (!db) return
-  db.run(`DELETE FROM maps WHERE id = ?`, [id])
-  saveDatabase()
+  maps = maps.filter(m => m.id !== id)
+  saveToStorage()
 }
 
-export function importFromTxt(content: string): { rows: number; cols: number; data: number[][] } | null {
+export function importFromTxt(content: string): { rows: number; cols: number; data: number[][]; tileTypes?: string } | null {
   try {
     const lines = content.trim().split('\n')
     if (lines.length === 0) return null
     
-    const data = lines.map(line => 
-      line.trim().split(/\s+/).map(Number)
-    )
+    let tileTypes: string | undefined
+    let mapStartIndex = 0
     
+    const mapStartLine = lines.findIndex((line, i) => {
+      if (line.trim() === 'MAP') {
+        mapStartIndex = i + 1
+        return true
+      }
+      return false
+    })
+    
+    if (mapStartLine >= 0) {
+      const tilesLine = lines.findIndex((line, i) => i > mapStartLine && line.trim() === 'TILES')
+      if (tilesLine >= 0) {
+        tileTypes = lines.slice(tilesLine + 1).join('\n')
+      }
+      const mapLines = lines.slice(mapStartIndex, tilesLine >= 0 ? tilesLine : undefined)
+      const data = mapLines.map(line => line.trim().split(/\s+/).map(Number))
+      const rows = data.length
+      const cols = data[0]?.length || 0
+      return { rows, cols, data, tileTypes }
+    }
+    
+    const data = lines.map(line => line.trim().split(/\s+/).map(Number))
     const rows = data.length
     const cols = data[0]?.length || 0
     

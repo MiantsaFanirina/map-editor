@@ -9,10 +9,19 @@ const sections = [
     title: 'Drawing',
     icon: '',
     items: [
-      { key: '0-8', desc: 'Select tile type', shortcut: 'Keys 0-8' },
       { key: 'click', desc: 'Place single tile', shortcut: 'Left Click' },
       { key: 'drag', desc: 'Paint continuously', shortcut: 'Left Drag' },
       { key: 'right', desc: 'Reset to grass', shortcut: 'Right Click' },
+    ]
+  },
+  {
+    title: 'Tile Types',
+    icon: '',
+    items: [
+      { key: 'select', desc: 'Select tile type', shortcut: 'Click sidebar' },
+      { key: 'add', desc: 'Add new tile type', shortcut: '+ Add Tile btn' },
+      { key: 'edit', desc: 'Edit tile (color/name)', shortcut: '✏️' },
+      { key: 'delete', desc: 'Remove tile type', shortcut: '🗑️' },
     ]
   },
   {
@@ -48,10 +57,10 @@ const sections = [
     title: 'Save/Load',
     icon: '',
     items: [
-      { key: 'save', desc: 'Save to browser', shortcut: '💾 Button' },
-      { key: 'load', desc: 'Load saved map', shortcut: '📂 Button' },
-      { key: 'import', desc: 'Import TXT file', shortcut: '📥 Button' },
-      { key: 'export', desc: 'Export as TXT', shortcut: '↓ Button' },
+      { key: 'save', desc: 'Save to browser', shortcut: '💾' },
+      { key: 'load', desc: 'Load saved map', shortcut: '📂' },
+      { key: 'import', desc: 'Import TXT file', shortcut: '📥' },
+      { key: 'export', desc: 'Export as TXT', shortcut: '↓' },
     ]
   },
 ]
@@ -128,7 +137,7 @@ export function TutorialPanel({ onClose }: TutorialPanelProps) {
             onClick={onClose}
             className="px-8 py-3 bg-gradient-to-r from-purple-600 to-emerald-600 hover:from-purple-500 hover:to-emerald-500 text-white font-bold rounded-xl transition-all shadow-lg hover:shadow-purple-500/25"
           >
-            Let's Go! 🚀
+            Let's Go!
           </button>
         </div>
       </div>

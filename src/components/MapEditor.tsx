@@ -1,20 +1,22 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import type { MapConfig, Camera, Point } from '../types'
-import { TILE_TYPES, MIN_ZOOM, MAX_ZOOM, ZOOM_SENSITIVITY, type SelectionShape, SELECTION_SHAPES } from '../constants/tiles'
+import { MIN_ZOOM, MAX_ZOOM, ZOOM_SENSITIVITY, type SelectionShape, SELECTION_SHAPES } from '../constants/tiles'
 import { useHistory } from '../hooks/useHistory'
+import { useTileTypes, tileTypesToExport, tileTypesFromExport } from '../hooks/useTileTypes'
 import { screenToWorld, worldToTile, isValidTile, generatePreviewText, downloadMap, getTilesInShape, fillTriangleWithPoints } from '../utils/coordinates'
 import { renderCanvas } from '../utils/render'
 import { Toolbar, TileSidebar, PreviewModal, TutorialPanel, ShapeSelector, SaveLoadModal, ImportModal } from './index'
-import type { SavedMap } from '../utils/database'
+import { saveCurrentSession, type SavedMap } from '../utils/database'
 
 interface MapEditorProps {
   config: MapConfig
   onBack: () => void
   initialData?: number[][] | null
+  initialTileTypes?: string
   onLoadMap?: (savedMap: SavedMap) => void
 }
 
-export function MapEditor({ config, onBack, initialData }: MapEditorProps) {
+export function MapEditor({ config, onBack, initialData, initialTileTypes }: MapEditorProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
   const animationRef = useRef<number>(0)
@@ -24,9 +26,10 @@ export function MapEditor({ config, onBack, initialData }: MapEditorProps) {
   )
   
   const { startAction, endAction, forceSave, undo, redo, canUndo, canRedo } = useHistory(mapData)
+  const { tileTypes, addTileType, updateTileType, removeTileType, getTileColor } = useTileTypes(initialTileTypes)
   
   const [camera, setCamera] = useState<Camera>({ x: 0, y: 0, zoom: 1 })
-  const [selectedTile, setSelectedTile] = useState<number>(1)
+  const [selectedTile, setSelectedTile] = useState<number>(0)
   const [selectedShape, setSelectedShape] = useState<SelectionShape>('rectangle')
   
   const [isPanning, setIsPanning] = useState(false)
@@ -43,6 +46,13 @@ export function MapEditor({ config, onBack, initialData }: MapEditorProps) {
   const [showSave, setShowSave] = useState(false)
   const [showLoad, setShowLoad] = useState(false)
   const [showImport, setShowImport] = useState(false)
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      saveCurrentSession(config, mapData, JSON.stringify(tileTypes))
+    }, 1000)
+    return () => clearTimeout(timer)
+  }, [config, mapData, tileTypes])
 
   const mapDataRef = useRef(mapData)
   mapDataRef.current = mapData
@@ -84,6 +94,7 @@ export function MapEditor({ config, onBack, initialData }: MapEditorProps) {
         config,
         selection: isSelecting && selectionStart && selectionEnd ? { start: selectionStart, end: selectionEnd, shape: selectedShape } : undefined,
         trianglePoints,
+        getTileColor,
       })
     }
     
@@ -113,7 +124,7 @@ export function MapEditor({ config, onBack, initialData }: MapEditorProps) {
       window.removeEventListener('resize', handleResize)
       cancelAnimationFrame(animationRef.current)
     }
-  }, [camera, config, isSelecting, selectionStart, selectionEnd, selectedShape, trianglePoints])
+  }, [camera, config, isSelecting, selectionStart, selectionEnd, selectedShape, trianglePoints, getTileColor])
 
   const handleWheel = useCallback((e: React.WheelEvent) => {
     e.preventDefault()
@@ -277,7 +288,7 @@ export function MapEditor({ config, onBack, initialData }: MapEditorProps) {
       }
       
       const keyNum = parseInt(e.key)
-      if (!isNaN(keyNum) && TILE_TYPES[keyNum] !== undefined) {
+      if (!isNaN(keyNum) && tileTypes.find(t => t.id === keyNum)) {
         setSelectedTile(keyNum)
       }
       
@@ -302,12 +313,22 @@ export function MapEditor({ config, onBack, initialData }: MapEditorProps) {
       window.removeEventListener('keydown', handleKeyDown)
       window.removeEventListener('keyup', handleKeyUp)
     }
-  }, [handleUndo, handleRedo])
+  }, [handleUndo, handleRedo, tileTypes])
+
+  const handleRemoveTile = (id: number) => {
+    if (selectedTile === id) {
+      setSelectedTile(0)
+    }
+    removeTileType(id)
+  }
 
   const handleDownload = useCallback(() => {
     const content = generatePreviewText(mapData)
-    downloadMap(content, `map_${config.cols}x${config.rows}.txt`)
-  }, [mapData, config])
+    const tileTypesContent = tileTypesToExport(tileTypes)
+    
+    const combined = `MAP\n${content}\n\nTILES\n${tileTypesContent}`
+    downloadMap(combined, `map_${config.cols}x${config.rows}.txt`)
+  }, [mapData, config, tileTypes])
 
   return (
     <div className="flex flex-col h-screen bg-gray-900 text-white">
@@ -331,6 +352,10 @@ export function MapEditor({ config, onBack, initialData }: MapEditorProps) {
           selectedTile={selectedTile}
           onSelectTile={setSelectedTile}
           camera={camera}
+          tileTypes={tileTypes}
+          onAddTile={addTileType}
+          onUpdateTile={updateTileType}
+          onRemoveTile={handleRemoveTile}
         />
         
         <div ref={containerRef} className="flex-1 relative">
@@ -390,6 +415,7 @@ export function MapEditor({ config, onBack, initialData }: MapEditorProps) {
           mode="save"
           mapData={mapData}
           config={config}
+          tileTypes={tileTypes}
           onClose={() => setShowSave(false)}
         />
       )}
@@ -401,6 +427,16 @@ export function MapEditor({ config, onBack, initialData }: MapEditorProps) {
           config={config}
           onLoad={(savedMap) => {
             setMapData(savedMap.data)
+            if (savedMap.tileTypes) {
+              try {
+                const parsed = JSON.parse(savedMap.tileTypes)
+                parsed.forEach((t: { id: number; color: string; label: string }) => {
+                  if (!tileTypes.find(existing => existing.id === t.id)) {
+                    addTileType(t.color, t.label)
+                  }
+                })
+              } catch {}
+            }
             setCamera({ x: 0, y: 0, zoom: 1 })
           }}
           onClose={() => setShowLoad(false)}
@@ -411,6 +447,14 @@ export function MapEditor({ config, onBack, initialData }: MapEditorProps) {
         <ImportModal
           onImport={(imported) => {
             setMapData(imported.data)
+            if (imported.tileTypes) {
+              const parsed = tileTypesFromExport(imported.tileTypes)
+              parsed.forEach(t => {
+                if (!tileTypes.find(existing => existing.id === t.id)) {
+                  addTileType(t.color, t.label)
+                }
+              })
+            }
             setCamera({ x: 0, y: 0, zoom: 1 })
           }}
           onClose={() => setShowImport(false)}

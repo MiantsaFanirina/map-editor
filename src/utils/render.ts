@@ -1,6 +1,4 @@
 import type { Camera, MapConfig, Point } from '../types'
-import { TILE_TYPES } from '../constants/tiles'
-import type { SelectionShape } from '../constants/tiles'
 
 interface RenderOptions {
   canvas: HTMLCanvasElement
@@ -10,9 +8,10 @@ interface RenderOptions {
   selection?: {
     start: Point | null
     end: Point | null
-    shape: SelectionShape
+    shape: string
   }
   trianglePoints?: Point[]
+  getTileColor: (id: number) => string
 }
 
 export function renderCanvas({
@@ -22,6 +21,7 @@ export function renderCanvas({
   config,
   selection,
   trianglePoints,
+  getTileColor,
 }: RenderOptions): void {
   const ctx = canvas.getContext('2d')
   if (!ctx) return
@@ -46,9 +46,9 @@ export function renderCanvas({
   for (let tileY = startTileY; tileY <= endTileY; tileY++) {
     for (let tileX = startTileX; tileX <= endTileX; tileX++) {
       const tileId = mapData[tileY]?.[tileX] ?? 0
-      const tileDef = TILE_TYPES[tileId] || TILE_TYPES[0]
+      const color = getTileColor(tileId)
 
-      ctx.fillStyle = tileDef.color
+      ctx.fillStyle = color
       ctx.fillRect(
         tileX * config.tileSize,
         tileY * config.tileSize,
