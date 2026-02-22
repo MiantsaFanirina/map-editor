@@ -12,10 +12,11 @@ interface UseCanvasLoopOptions {
   selection?: { start: Point; end: Point; shape: SelectionShape } | undefined
   trianglePoints: Point[]
   getTileColor: (id: number) => string
+  mouseTile?: { x: number; y: number } | null
 }
 
 export function useCanvasLoop(options: UseCanvasLoopOptions) {
-  const { canvasRef, containerRef, camera, mapData, config, selection, trianglePoints, getTileColor } = options
+  const { canvasRef, containerRef, camera, mapData, config, selection, trianglePoints, getTileColor, mouseTile } = options
   const animationRef = useRef<number>(0)
 
   useEffect(() => {
@@ -32,6 +33,7 @@ export function useCanvasLoop(options: UseCanvasLoopOptions) {
         selection,
         trianglePoints,
         getTileColor,
+        mouseTile,
       })
     }
     
@@ -61,5 +63,5 @@ export function useCanvasLoop(options: UseCanvasLoopOptions) {
       window.removeEventListener('resize', handleResize)
       cancelAnimationFrame(animationRef.current)
     }
-  }, [canvasRef, containerRef, camera, mapData, config, selection, trianglePoints, getTileColor])
+  }, [canvasRef, containerRef, camera, mapData, config, selection, trianglePoints, getTileColor, mouseTile])
 }

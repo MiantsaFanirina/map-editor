@@ -145,17 +145,36 @@ export function importFromTxt(content: string): { rows: number; cols: number; da
         tileTypes = lines.slice(tilesLine + 1).join('\n')
       }
       const mapLines = lines.slice(mapStartIndex, tilesLine >= 0 ? tilesLine : undefined)
+        .filter(line => line.trim().length > 0)
+        .filter(line => line.trim().split(/\s+/).some(n => n !== '0'))
       const data = mapLines.map(line => line.trim().split(/\s+/).map(Number))
       const rows = data.length
-      const cols = data[0]?.length || 0
-      return { rows, cols, data, tileTypes }
+      const maxCols = Math.max(0, ...data.map(row => row.length))
+      const normalizedData = data.map(row => {
+        const padded = [...row]
+        while (padded.length < maxCols) {
+          padded.push(0)
+        }
+        return padded
+      })
+      return { rows, cols: maxCols, data: normalizedData, tileTypes }
     }
     
-    const data = lines.map(line => line.trim().split(/\s+/).map(Number))
+    const mapLines = lines
+      .filter(line => line.trim().length > 0)
+      .filter(line => line.trim().split(/\s+/).some(n => n !== '0'))
+    const data = mapLines.map(line => line.trim().split(/\s+/).map(Number))
     const rows = data.length
-    const cols = data[0]?.length || 0
+    const maxCols = Math.max(0, ...data.map(row => row.length))
+    const normalizedData = data.map(row => {
+      const padded = [...row]
+      while (padded.length < maxCols) {
+        padded.push(0)
+      }
+      return padded
+    })
     
-    return { rows, cols, data }
+    return { rows, cols: maxCols, data: normalizedData }
   } catch {
     return null
   }

@@ -96,6 +96,7 @@ export function MapEditor({ config, onBack, initialData, initialTileTypes, onLoa
     
     if (e.button === 1 || (e.button === 0 && spacePressed)) {
       setIsPanning(true)
+      setLastMousePos({ x: e.clientX, y: e.clientY })
       e.preventDefault()
       return
     }
@@ -148,6 +149,7 @@ export function MapEditor({ config, onBack, initialData, initialTileTypes, onLoa
   const [lastMousePos, setLastMousePos] = useState<Point>({ x: 0, y: 0 })
   const [selectionStart, setSelectionStart] = useState<Point | null>(null)
   const [selectionEnd, setSelectionEnd] = useState<Point | null>(null)
+  const [mouseTile, setMouseTile] = useState<{ x: number; y: number } | null>(null)
 
   useEffect(() => {
     isSelectingRef.current = isSelecting
@@ -206,9 +208,15 @@ export function MapEditor({ config, onBack, initialData, initialTileTypes, onLoa
     const worldPos = screenToWorld(mouseX, mouseY, camera)
     const tilePos = worldToTile(worldPos.x, worldPos.y, config.tileSize)
     
+    if (isValidTile(tilePos.x, tilePos.y, config)) {
+      setMouseTile(tilePos)
+    } else {
+      setMouseTile(null)
+    }
+    
     if (isPanning) {
-      const dx = e.clientX - lastMousePos.x
-      const dy = e.clientY - lastMousePos.y
+      const dx = (e.clientX - lastMousePos.x)
+      const dy = (e.clientY - lastMousePos.y)
       
       setCamera(prev => ({
         ...prev,
@@ -249,7 +257,7 @@ export function MapEditor({ config, onBack, initialData, initialTileTypes, onLoa
     }
     
     setLastMousePos({ x: e.clientX, y: e.clientY })
-  }, [camera, config, isPanning, isBrushPainting, isSelecting, lastMousePos, selectedTile, placeTile, updateSelectionAndScroll])
+  }, [camera, config, isPanning, isBrushPainting, isSelecting, lastMousePos, selectedTile, placeTile, updateSelectionAndScroll, setMouseTile])
 
   const handleMouseUp = useCallback(() => {
     if (isPanning) setIsPanning(false)
@@ -286,6 +294,7 @@ export function MapEditor({ config, onBack, initialData, initialTileTypes, onLoa
     selection: isSelecting && selectionStart && selectionEnd ? { start: selectionStart, end: selectionEnd, shape: selectedShape } : undefined,
     trianglePoints,
     getTileColor,
+    mouseTile,
   })
 
   useEffect(() => {
@@ -421,20 +430,11 @@ export function MapEditor({ config, onBack, initialData, initialTileTypes, onLoa
             style={{ display: 'block' }}
           />
           
-          <div className="absolute top-4 left-4 flex gap-2">
+          <div className="absolute top-[34px] left-[34px] flex gap-2">
             <ShapeSelector
               selectedShape={selectedShape}
               onSelectShape={(shape) => { setSelectedShape(shape); setTrianglePoints([]) }}
             />
-          </div>
-          
-          <div className="absolute bottom-4 left-4 flex gap-2">
-            <button
-              onClick={() => setShowTutorial(true)}
-              className="px-3 py-1 bg-gray-700 hover:bg-gray-600 rounded text-sm"
-            >
-              ? Help
-            </button>
           </div>
         </div>
       </div>
