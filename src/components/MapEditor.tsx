@@ -149,6 +149,50 @@ export function MapEditor({ config, onBack, initialData, initialTileTypes, onLoa
   const [selectionStart, setSelectionStart] = useState<Point | null>(null)
   const [selectionEnd, setSelectionEnd] = useState<Point | null>(null)
 
+  useEffect(() => {
+    isSelectingRef.current = isSelecting
+    if (!isSelecting && scrollFrameRef.current) {
+      cancelAnimationFrame(scrollFrameRef.current)
+      scrollFrameRef.current = 0
+    }
+  }, [isSelecting])
+
+  const SCROLL_ZONE = 50
+  const SCROLL_SPEED = 15
+  const scrollFrameRef = useRef<number>(0)
+  const isSelectingRef = useRef(false)
+  const mousePosRef = useRef({ x: 0, y: 0, rect: { width: 0, height: 0 } })
+
+  const updateSelectionAndScroll = useCallback(() => {
+    if (!isSelectingRef.current) return
+
+    const canvas = canvasRef.current
+    if (!canvas) return
+
+    const rect = canvas.getBoundingClientRect()
+    const mouseX = mousePosRef.current.x
+    const mouseY = mousePosRef.current.y
+
+    let dx = 0
+    let dy = 0
+    if (mouseX < SCROLL_ZONE) dx = SCROLL_SPEED
+    if (mouseX > rect.width - SCROLL_ZONE) dx = -SCROLL_SPEED
+    if (mouseY < SCROLL_ZONE) dy = SCROLL_SPEED
+    if (mouseY > rect.height - SCROLL_ZONE) dy = -SCROLL_SPEED
+
+    if (dx !== 0 || dy !== 0) {
+      setCamera(prev => {
+        const newCamera = { x: prev.x + dx, y: prev.y + dy, zoom: prev.zoom }
+        const worldPos = screenToWorld(mouseX, mouseY, newCamera)
+        const tilePos = worldToTile(worldPos.x, worldPos.y, config.tileSize)
+        setSelectionEnd(tilePos)
+        return newCamera
+      })
+    }
+
+    scrollFrameRef.current = requestAnimationFrame(updateSelectionAndScroll)
+  }, [config.tileSize])
+
   const handleMouseMove = useCallback((e: React.MouseEvent) => {
     const canvas = canvasRef.current
     if (!canvas) return
@@ -156,6 +200,9 @@ export function MapEditor({ config, onBack, initialData, initialTileTypes, onLoa
     const rect = canvas.getBoundingClientRect()
     const mouseX = e.clientX - rect.left
     const mouseY = e.clientY - rect.top
+    
+    mousePosRef.current = { x: mouseX, y: mouseY, rect: { width: rect.width, height: rect.height } }
+    
     const worldPos = screenToWorld(mouseX, mouseY, camera)
     const tilePos = worldToTile(worldPos.x, worldPos.y, config.tileSize)
     
@@ -181,10 +228,28 @@ export function MapEditor({ config, onBack, initialData, initialTileTypes, onLoa
     
     if (isSelecting) {
       setSelectionEnd(tilePos)
+      
+      let dx = 0
+      let dy = 0
+      if (mouseX < SCROLL_ZONE) dx = SCROLL_SPEED
+      if (mouseX > rect.width - SCROLL_ZONE) dx = -SCROLL_SPEED
+      if (mouseY < SCROLL_ZONE) dy = SCROLL_SPEED
+      if (mouseY > rect.height - SCROLL_ZONE) dy = -SCROLL_SPEED
+      
+      if (dx !== 0 || dy !== 0) {
+        if (!scrollFrameRef.current) {
+          scrollFrameRef.current = requestAnimationFrame(updateSelectionAndScroll)
+        }
+      } else {
+        if (scrollFrameRef.current) {
+          cancelAnimationFrame(scrollFrameRef.current)
+          scrollFrameRef.current = 0
+        }
+      }
     }
     
     setLastMousePos({ x: e.clientX, y: e.clientY })
-  }, [camera, config, isPanning, isBrushPainting, isSelecting, lastMousePos, selectedTile, placeTile])
+  }, [camera, config, isPanning, isBrushPainting, isSelecting, lastMousePos, selectedTile, placeTile, updateSelectionAndScroll])
 
   const handleMouseUp = useCallback(() => {
     if (isPanning) setIsPanning(false)
