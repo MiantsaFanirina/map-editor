@@ -190,7 +190,7 @@ export function TutorialPanel({ onClose }: TutorialPanelProps) {
           </motion.button>
         </div>
 
-        <div className="flex-1 overflow-auto px-6 py-6 scrollbar-thin" style={{ minHeight: '640px', maxHeight: '640px' }}>
+        <div className="flex-1 overflow-auto px-6 py-6 scrollbar-thin" style={{ minHeight: '500px', maxHeight: '500px' }}>
           <AnimatePresence mode="wait">
             <motion.div 
               key={showAll ? 'all' : activeTab.toString()}
