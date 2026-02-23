@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import type { Camera } from '../types'
 import type { CustomTileType } from '../hooks/useTileTypes'
 
@@ -7,8 +7,8 @@ interface TileSidebarProps {
   onSelectTile: (tileId: number) => void
   camera: Camera
   tileTypes: CustomTileType[]
-  onAddTile: (color: string, label: string) => void
-  onUpdateTile: (id: number, color: string, label: string) => void
+  onAddTile: (color: string, label: string, image?: string) => void
+  onUpdateTile: (id: number, color: string, label: string, image?: string) => void
   onRemoveTile: (id: number) => void
 }
 
@@ -25,22 +25,57 @@ export function TileSidebar({
   const [editingId, setEditingId] = useState<number | null>(null)
   const [newColor, setNewColor] = useState('#3b82f6')
   const [newLabel, setNewLabel] = useState('')
+  const [newImage, setNewImage] = useState<string | undefined>()
+  const addFileInputRef = useRef<HTMLInputElement>(null)
+  const editFileInputRef = useRef<HTMLInputElement>(null)
+
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file) {
+      const reader = new FileReader()
+      reader.onload = (event) => {
+        setNewImage(event.target?.result as string)
+      }
+      reader.readAsDataURL(file)
+    }
+    e.target.value = ''
+  }
 
   const handleAdd = () => {
     if (newLabel.trim()) {
-      onAddTile(newColor, newLabel.trim())
+      onAddTile(newColor, newLabel.trim(), newImage)
       setNewLabel('')
+      setNewColor('#3b82f6')
+      setNewImage(undefined)
       setIsAdding(false)
     }
   }
 
   const handleUpdate = (id: number) => {
     if (newLabel.trim()) {
-      onUpdateTile(id, newColor, newLabel.trim())
+      onUpdateTile(id, newColor, newLabel.trim(), newImage)
       setEditingId(null)
       setNewLabel('')
+      setNewImage(undefined)
     }
   }
+
+  const startEditing = (tile: CustomTileType) => {
+    setEditingId(tile.id)
+    setNewColor(tile.color)
+    setNewLabel(tile.label)
+    setNewImage(tile.image)
+  }
+
+  const TilePreview = ({ tile, size = 'w-10 h-10' }: { tile: CustomTileType; size?: string }) => (
+    <div className={`${size} rounded-lg border-2 border-gray-600 flex-shrink-0 overflow-hidden`}>
+      {tile.image ? (
+        <img src={tile.image} alt={tile.label} className="w-full h-full object-cover" />
+      ) : (
+        <div className="w-full h-full" style={{ backgroundColor: tile.color }} />
+      )}
+    </div>
+  )
 
   return (
     <div className="w-64 bg-gray-800 border-r border-gray-700 flex flex-col">
@@ -60,10 +95,7 @@ export function TileSidebar({
                 : 'hover:bg-gray-700'
             }`}
           >
-            <div
-              className="w-10 h-10 rounded-lg border-2 border-gray-600 flex-shrink-0 pointer-events-none"
-              style={{ backgroundColor: tile.color }}
-            />
+            <TilePreview tile={tile} />
             <div className="flex-1 min-w-0">
               {editingId === tile.id ? (
                 <div className="space-y-1" onClick={(e) => e.stopPropagation()}>
@@ -80,6 +112,34 @@ export function TileSidebar({
                     placeholder="Name"
                     className="w-full px-2 py-1 bg-gray-600 rounded text-sm"
                   />
+                  <div className="flex gap-1 items-center">
+                    <button
+                      onClick={() => editFileInputRef.current?.click()}
+                      className="flex-1 py-1 bg-gray-600 hover:bg-gray-500 rounded text-xs"
+                    >
+                      {newImage ? 'Change Image' : 'Add Image'}
+                    </button>
+                    {newImage && (
+                      <button
+                        onClick={() => setNewImage(undefined)}
+                        className="px-2 py-1 bg-red-600 hover:bg-red-500 rounded text-xs"
+                      >
+                        ✕
+                      </button>
+                    )}
+                  </div>
+                  <input
+                    ref={editFileInputRef}
+                    type="file"
+                    accept="image/*"
+                    onChange={handleImageUpload}
+                    className="hidden"
+                  />
+                  {newImage && (
+                    <div className="w-full h-16 rounded overflow-hidden bg-gray-600">
+                      <img src={newImage} alt="Preview" className="w-full h-full object-contain" />
+                    </div>
+                  )}
                   <div className="flex gap-1">
                     <button
                       onClick={() => handleUpdate(tile.id)}
@@ -105,7 +165,7 @@ export function TileSidebar({
             {editingId !== tile.id && (
               <div className="opacity-0 group-hover:opacity-100 flex gap-1">
                 <button
-                  onClick={(e) => { e.stopPropagation(); setEditingId(tile.id); setNewColor(tile.color); setNewLabel(tile.label) }}
+                  onClick={(e) => { e.stopPropagation(); startEditing(tile) }}
                   className="p-1 bg-gray-600 rounded hover:bg-gray-500"
                   title="Edit"
                 >
@@ -141,6 +201,34 @@ export function TileSidebar({
               className="w-full px-2 py-1 bg-gray-600 rounded text-sm"
               autoFocus
             />
+            <div className="flex gap-1 items-center">
+              <button
+                onClick={() => addFileInputRef.current?.click()}
+                className="flex-1 py-1 bg-gray-600 hover:bg-gray-500 rounded text-xs"
+              >
+                {newImage ? 'Change Image' : 'Add Image'}
+              </button>
+              {newImage && (
+                <button
+                  onClick={() => setNewImage(undefined)}
+                  className="px-2 py-1 bg-red-600 hover:bg-red-500 rounded text-xs"
+                >
+                  ✕
+                </button>
+              )}
+            </div>
+            <input
+              ref={addFileInputRef}
+              type="file"
+              accept="image/*"
+              onChange={handleImageUpload}
+              className="hidden"
+            />
+            {newImage && (
+              <div className="w-full h-16 rounded overflow-hidden bg-gray-600">
+                <img src={newImage} alt="Preview" className="w-full h-full object-contain" />
+              </div>
+            )}
             <div className="flex gap-2">
               <button
                 onClick={handleAdd}
@@ -149,7 +237,7 @@ export function TileSidebar({
                 Add
               </button>
               <button
-                onClick={() => setIsAdding(false)}
+                onClick={() => { setIsAdding(false); setNewImage(undefined) }}
                 className="px-3 py-1 bg-gray-600 rounded text-sm"
               >
                 Cancel
@@ -172,10 +260,20 @@ export function TileSidebar({
           <p className="text-xs text-gray-400">Zoom: {Math.round(camera.zoom * 100)}%</p>
         </div>
         <div className="flex items-center gap-2">
-          <div
-            className="w-6 h-6 rounded border border-gray-500"
-            style={{ backgroundColor: tileTypes.find(t => t.id === selectedTile)?.color }}
-          />
+          <div className="w-6 h-6 rounded border border-gray-500 overflow-hidden">
+            {tileTypes.find(t => t.id === selectedTile)?.image ? (
+              <img 
+                src={tileTypes.find(t => t.id === selectedTile)?.image} 
+                alt="" 
+                className="w-full h-full object-cover" 
+              />
+            ) : (
+              <div 
+                className="w-full h-full" 
+                style={{ backgroundColor: tileTypes.find(t => t.id === selectedTile)?.color }} 
+              />
+            )}
+          </div>
           <span className="font-medium text-sm">{tileTypes.find(t => t.id === selectedTile)?.label}</span>
           <span className="text-gray-400 text-sm">({selectedTile})</span>
         </div>

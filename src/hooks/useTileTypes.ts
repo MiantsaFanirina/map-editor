@@ -4,10 +4,11 @@ export interface CustomTileType {
   id: number
   color: string
   label: string
+  image?: string
 }
 
 const DEFAULT_TILES: CustomTileType[] = [
-  { id: 0, color: '#4ade80', label: 'Grass' },
+  { id: 0, color: '#000000', label: 'Empty' },
 ]
 
 const STORAGE_KEY = 'mapEditorTileTypes'
@@ -36,15 +37,15 @@ export function useTileTypes(initialValue?: string) {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(tileTypes))
   }, [tileTypes])
 
-  const addTileType = useCallback((color: string, label: string) => {
+  const addTileType = useCallback((color: string, label: string, image?: string) => {
     setTileTypes(prev => {
       const maxId = prev.length > 0 ? Math.max(...prev.map(t => t.id)) : 0
-      return [...prev, { id: maxId + 1, color, label }]
+      return [...prev, { id: maxId + 1, color, label, image }]
     })
   }, [])
 
-  const updateTileType = useCallback((id: number, color: string, label: string) => {
-    setTileTypes(prev => prev.map(t => t.id === id ? { ...t, color, label } : t))
+  const updateTileType = useCallback((id: number, color: string, label: string, image?: string) => {
+    setTileTypes(prev => prev.map(t => t.id === id ? { ...t, color, label, image } : t))
   }, [])
 
   const removeTileType = useCallback((id: number) => {
@@ -57,7 +58,11 @@ export function useTileTypes(initialValue?: string) {
   }, [])
 
   const getTileColor = useCallback((id: number): string => {
-    return tileTypes.find(t => t.id === id)?.color || '#4ade80'
+    return tileTypes.find(t => t.id === id)?.color || '#000000'
+  }, [tileTypes])
+
+  const getTileImage = useCallback((id: number): string | undefined => {
+    return tileTypes.find(t => t.id === id)?.image
   }, [tileTypes])
 
   const getTileLabel = useCallback((id: number): string => {
@@ -71,12 +76,19 @@ export function useTileTypes(initialValue?: string) {
     removeTileType,
     resetToDefault,
     getTileColor,
+    getTileImage,
     getTileLabel,
   }
 }
 
 export function tileTypesToExport(tileTypes: CustomTileType[]): string {
-  return tileTypes.map(t => `${t.id}:${t.color}:${t.label}`).join('\n')
+  return tileTypes.map(t => {
+    const base = `${t.id}:${t.color}:${t.label}`
+    if (t.image) {
+      return `${base}:${t.image}`
+    }
+    return base
+  }).join('\n')
 }
 
 export function tileTypesFromExport(content: string): CustomTileType[] {
@@ -84,8 +96,12 @@ export function tileTypesFromExport(content: string): CustomTileType[] {
     return content.split('\n')
       .filter(line => line.trim())
       .map(line => {
-        const [id, color, label] = line.split(':')
-        return { id: parseInt(id), color, label }
+        const parts = line.split(':')
+        const id = parseInt(parts[0])
+        const color = parts[1] || '#4ade80'
+        const label = parts[2] || 'Unknown'
+        const image = parts[3]
+        return { id, color, label, image }
       })
       .sort((a, b) => a.id - b.id)
   } catch {

@@ -12,11 +12,14 @@ interface RenderOptions {
   }
   trianglePoints?: Point[]
   getTileColor: (id: number) => string
+  getTileImage?: (id: number) => string | undefined
   mouseTile?: { x: number; y: number } | null
 }
 
 const RULER_SIZE = 25
 const GRID_LINE_EVERY = 5
+
+const tileImageCache = new Map<string, HTMLImageElement>()
 
 export function renderCanvas({
   canvas,
@@ -26,6 +29,7 @@ export function renderCanvas({
   selection,
   trianglePoints,
   getTileColor,
+  getTileImage,
   mouseTile,
 }: RenderOptions): void {
   const ctx = canvas.getContext('2d')
@@ -48,21 +52,49 @@ export function renderCanvas({
   ctx.translate(camera.x, camera.y)
   ctx.scale(camera.zoom, camera.zoom)
 
-  ctx.fillStyle = '#1f2937'
+  ctx.fillStyle = '#000000'
   ctx.fillRect(0, 0, config.cols * config.tileSize, config.rows * config.tileSize)
 
   for (let tileY = startTileY; tileY <= endTileY; tileY++) {
     for (let tileX = startTileX; tileX <= endTileX; tileX++) {
       const tileId = mapData[tileY]?.[tileX] ?? 0
       const color = getTileColor(tileId)
+      const imageUrl = getTileImage?.(tileId)
 
-      ctx.fillStyle = color
-      ctx.fillRect(
-        tileX * config.tileSize,
-        tileY * config.tileSize,
-        config.tileSize,
-        config.tileSize
-      )
+      if (imageUrl) {
+        let img = tileImageCache.get(imageUrl)
+        if (!img) {
+          img = new Image()
+          img.src = imageUrl
+          tileImageCache.set(imageUrl, img)
+        }
+        
+        if (img.complete) {
+          ctx.drawImage(
+            img,
+            tileX * config.tileSize,
+            tileY * config.tileSize,
+            config.tileSize,
+            config.tileSize
+          )
+        } else {
+          ctx.fillStyle = color
+          ctx.fillRect(
+            tileX * config.tileSize,
+            tileY * config.tileSize,
+            config.tileSize,
+            config.tileSize
+          )
+        }
+      } else {
+        ctx.fillStyle = color
+        ctx.fillRect(
+          tileX * config.tileSize,
+          tileY * config.tileSize,
+          config.tileSize,
+          config.tileSize
+        )
+      }
     }
   }
 
@@ -116,22 +148,6 @@ export function renderCanvas({
     ctx.globalAlpha = 1
   }
 
-  if (camera.zoom >= 0.5) {
-    ctx.fillStyle = 'rgba(0, 0, 0, 0.5)'
-    ctx.font = `${10 / camera.zoom}px sans-serif`
-
-    for (let tileY = startTileY; tileY <= endTileY; tileY++) {
-      for (let tileX = startTileX; tileX <= endTileX; tileX++) {
-        const tileId = mapData[tileY]?.[tileX] ?? 0
-        ctx.fillText(
-          tileId.toString(),
-          tileX * config.tileSize + 2,
-          tileY * config.tileSize + 12 / camera.zoom
-        )
-      }
-    }
-  }
-
   if (selection?.start && selection?.end) {
     const { start, end, shape } = selection
     const minX = Math.min(start.x, end.x)
@@ -149,12 +165,7 @@ export function renderCanvas({
     ctx.setLineDash([5 / camera.zoom, 5 / camera.zoom])
     ctx.fillStyle = 'rgba(251, 191, 36, 0.3)'
     
-    let width = 0
-    let height = 0
-    
     if (shape === 'rectangle') {
-      width = maxX - minX + 1
-      height = maxY - minY + 1
       ctx.strokeRect(
         minX * config.tileSize,
         minY * config.tileSize,
@@ -168,8 +179,6 @@ export function renderCanvas({
         (maxY - minY + 1) * config.tileSize
       )
     } else if (shape === 'circle') {
-      width = Math.ceil(radiusX * 2)
-      height = Math.ceil(radiusY * 2)
       ctx.beginPath()
       ctx.ellipse(
         centerX * config.tileSize,
@@ -181,18 +190,12 @@ export function renderCanvas({
       ctx.stroke()
       ctx.fill()
     } else if (shape === 'line') {
-      const dx = Math.abs(end.x - start.x) + 1
-      const dy = Math.abs(end.y - start.y) + 1
-      width = Math.max(dx, dy)
-      height = Math.min(dx, dy)
       ctx.beginPath()
       ctx.moveTo((start.x + 0.5) * config.tileSize, (start.y + 0.5) * config.tileSize)
       ctx.lineTo((end.x + 0.5) * config.tileSize, (end.y + 0.5) * config.tileSize)
       ctx.lineWidth = 4 / camera.zoom
       ctx.stroke()
     } else if (shape === 'fill') {
-      width = config.cols
-      height = config.rows
       ctx.fillStyle = 'rgba(251, 191, 36, 0.15)'
       ctx.fillRect(0, 0, config.cols * config.tileSize, config.rows * config.tileSize)
       ctx.strokeStyle = '#fbbf24'
@@ -202,6 +205,8 @@ export function renderCanvas({
     
     ctx.setLineDash([])
 
+    const width = maxX - minX + 1
+    const height = maxY - minY + 1
     if (width > 0 && height > 0) {
       const labelX = maxX * config.tileSize + config.tileSize + 10
       const labelY = minY * config.tileSize

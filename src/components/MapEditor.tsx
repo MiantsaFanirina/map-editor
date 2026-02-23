@@ -7,6 +7,8 @@ import { Toolbar, TileSidebar, PreviewModal, TutorialPanel, ShapeSelector, SaveL
 import { tileTypesToExport, tileTypesFromExport } from '../hooks/useTileTypes'
 import { saveMap, saveCurrentSession, getCurrentSession, initDatabase, type SavedMap } from '../utils/database'
 
+const RULER_SIZE = 34
+
 interface MapEditorProps {
   config: MapConfig
   onBack: () => void
@@ -15,9 +17,151 @@ interface MapEditorProps {
   onLoadMap?: (savedMap: SavedMap) => void
 }
 
+function renderRulers(ctx: CanvasRenderingContext2D, canvas: HTMLCanvasElement, camera: Camera, config: MapConfig, mouseTile?: { x: number; y: number } | null) {
+  ctx.save()
+
+  ctx.fillStyle = '#374151'
+  ctx.fillRect(0, 0, canvas.width, RULER_SIZE)
+  ctx.fillRect(0, 0, RULER_SIZE, canvas.height)
+
+  ctx.strokeStyle = '#4b5563'
+  ctx.lineWidth = 1
+
+  const visibleLeft = -camera.x / camera.zoom
+  const visibleTop = -camera.y / camera.zoom
+  const visibleWidth = canvas.width / camera.zoom
+  const visibleHeight = canvas.height / camera.zoom
+
+  const tileStep = calculateRulerTileStep(config.tileSize, camera.zoom)
+  const step = tileStep * config.tileSize
+
+  ctx.font = '10px sans-serif'
+  ctx.fillStyle = '#9ca3af'
+  ctx.textAlign = 'center'
+
+  const startX = Math.floor(visibleLeft / step) * step
+  for (let worldX = startX; worldX < visibleLeft + visibleWidth; worldX += step) {
+    const screenX = worldX * camera.zoom + camera.x
+    if (screenX < RULER_SIZE || screenX > canvas.width) continue
+
+    const tileX = Math.floor(worldX / config.tileSize)
+    ctx.beginPath()
+    ctx.moveTo(screenX, RULER_SIZE - 8)
+    ctx.lineTo(screenX, RULER_SIZE)
+    ctx.stroke()
+
+    const isMajor = tileX % (tileStep * 2) === 0
+    if (isMajor) {
+      ctx.fillText(tileX.toString(), screenX, RULER_SIZE - 10)
+    }
+  }
+
+  ctx.textAlign = 'right'
+  const startY = Math.floor(visibleTop / step) * step
+  for (let worldY = startY; worldY < visibleTop + visibleHeight; worldY += step) {
+    const screenY = worldY * camera.zoom + camera.y
+    if (screenY < RULER_SIZE || screenY > canvas.height) continue
+
+    const tileY = Math.floor(worldY / config.tileSize)
+    ctx.beginPath()
+    ctx.moveTo(RULER_SIZE - 8, screenY)
+    ctx.lineTo(RULER_SIZE, screenY)
+    ctx.stroke()
+
+    const isMajor = tileY % (tileStep * 2) === 0
+    if (isMajor) {
+      ctx.fillText(tileY.toString(), RULER_SIZE - 10, screenY + 4)
+    }
+  }
+
+  ctx.strokeStyle = '#60a5fa'
+  ctx.lineWidth = 2
+  
+  const originScreenX = camera.x
+  const originScreenY = camera.y
+  
+  if (originScreenX >= RULER_SIZE && originScreenX <= canvas.width) {
+    ctx.beginPath()
+    ctx.moveTo(originScreenX, 0)
+    ctx.lineTo(originScreenX, RULER_SIZE)
+    ctx.stroke()
+  }
+  if (originScreenY >= RULER_SIZE && originScreenY <= canvas.height) {
+    ctx.beginPath()
+    ctx.moveTo(0, originScreenY)
+    ctx.lineTo(RULER_SIZE, originScreenY)
+    ctx.stroke()
+  }
+
+  ctx.strokeStyle = 'rgba(96, 165, 250, 0.3)'
+  ctx.lineWidth = 1
+  if (originScreenX >= RULER_SIZE && originScreenX <= canvas.width) {
+    ctx.beginPath()
+    ctx.moveTo(originScreenX, RULER_SIZE)
+    ctx.lineTo(originScreenX, canvas.height)
+    ctx.stroke()
+  }
+  if (originScreenY >= RULER_SIZE && originScreenY <= canvas.height) {
+    ctx.beginPath()
+    ctx.moveTo(RULER_SIZE, originScreenY)
+    ctx.lineTo(canvas.width, originScreenY)
+    ctx.stroke()
+  }
+
+  if (mouseTile) {
+    const mouseWorldX = mouseTile.x * config.tileSize
+    const mouseWorldY = mouseTile.y * config.tileSize
+    const mouseScreenX = mouseWorldX * camera.zoom + camera.x
+    const mouseScreenY = mouseWorldY * camera.zoom + camera.y
+    
+    ctx.strokeStyle = '#fbbf24'
+    ctx.lineWidth = 2
+    if (mouseScreenX >= RULER_SIZE) {
+      ctx.beginPath()
+      ctx.moveTo(mouseScreenX, 0)
+      ctx.lineTo(mouseScreenX, RULER_SIZE)
+      ctx.stroke()
+    }
+    if (mouseScreenY >= RULER_SIZE) {
+      ctx.beginPath()
+      ctx.moveTo(0, mouseScreenY)
+      ctx.lineTo(RULER_SIZE, mouseScreenY)
+      ctx.stroke()
+    }
+
+    ctx.fillStyle = '#fbbf24'
+    ctx.font = 'bold 10px sans-serif'
+    ctx.textAlign = 'left'
+    if (mouseScreenX >= RULER_SIZE) {
+      const labelX = mouseScreenX + 5
+      const labelY = RULER_SIZE - 5
+      ctx.fillText(`X: ${mouseTile.x}`, labelX, labelY)
+    }
+    if (mouseScreenY >= RULER_SIZE) {
+      const labelX = RULER_SIZE + 5
+      const labelY = mouseScreenY - 5
+      ctx.fillStyle = '#fbbf24'
+      ctx.fillText(`Y: ${mouseTile.y}`, labelX, labelY)
+    }
+  }
+
+  ctx.restore()
+}
+
+function calculateRulerTileStep(tileSize: number, zoom: number): number {
+  const minPixelsBetween = 60
+  const tilesPerStep = Math.max(1, Math.round(minPixelsBetween / (tileSize * zoom)))
+  
+  if (tilesPerStep <= 1) return 1
+  if (tilesPerStep <= 2) return 2
+  if (tilesPerStep <= 5) return 5
+  return 10
+}
+
 export function MapEditor({ config, onBack, initialData, initialTileTypes, onLoadMap }: MapEditorProps) {
-  const canvasRef = useRef<HTMLCanvasElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
+  const canvasRef = useRef<HTMLCanvasElement>(null)
+  const rulerRef = useRef<HTMLCanvasElement>(null)
   
   const {
     mapData,
@@ -35,6 +179,7 @@ export function MapEditor({ config, onBack, initialData, initialTileTypes, onLoa
     updateTileType,
     removeTileType,
     getTileColor,
+    getTileImage,
     startAction,
     endAction,
   } = useEditorState({ config, initialData, initialTileTypes })
@@ -65,30 +210,11 @@ export function MapEditor({ config, onBack, initialData, initialTileTypes, onLoa
     placeTile(tileX, tileY, 0)
   }, [placeTile])
 
-  const handleWheel = useCallback((e: React.WheelEvent) => {
-    e.preventDefault()
-    const canvas = canvasRef.current
-    if (!canvas) return
-    
-    const rect = canvas.getBoundingClientRect()
-    const mouseX = e.clientX - rect.left
-    const mouseY = e.clientY - rect.top
-    
-    const worldBefore = screenToWorld(mouseX, mouseY, camera)
-    const delta = -e.deltaY * 0.001
-    const newZoom = Math.max(0.1, Math.min(5, camera.zoom * (1 + delta)))
-    
-    const newCameraX = mouseX - worldBefore.x * newZoom
-    const newCameraY = mouseY - worldBefore.y * newZoom
-    
-    setCamera({ x: newCameraX, y: newCameraY, zoom: newZoom })
-  }, [camera])
-
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
-    const canvas = canvasRef.current
-    if (!canvas) return
+    const container = containerRef.current
+    if (!container) return
     
-    const rect = canvas.getBoundingClientRect()
+    const rect = container.getBoundingClientRect()
     const mouseX = e.clientX - rect.left
     const mouseY = e.clientY - rect.top
     const worldPos = screenToWorld(mouseX, mouseY, camera)
@@ -168,10 +294,10 @@ export function MapEditor({ config, onBack, initialData, initialTileTypes, onLoa
   const updateSelectionAndScroll = useCallback(() => {
     if (!isSelectingRef.current) return
 
-    const canvas = canvasRef.current
-    if (!canvas) return
+    const container = containerRef.current
+    if (!container) return
 
-    const rect = canvas.getBoundingClientRect()
+    const rect = container.getBoundingClientRect()
     const mouseX = mousePosRef.current.x
     const mouseY = mousePosRef.current.y
 
@@ -196,10 +322,10 @@ export function MapEditor({ config, onBack, initialData, initialTileTypes, onLoa
   }, [config.tileSize])
 
   const handleMouseMove = useCallback((e: React.MouseEvent) => {
-    const canvas = canvasRef.current
-    if (!canvas) return
+    const container = containerRef.current
+    if (!container) return
     
-    const rect = canvas.getBoundingClientRect()
+    const rect = container.getBoundingClientRect()
     const mouseX = e.clientX - rect.left
     const mouseY = e.clientY - rect.top
     
@@ -294,8 +420,31 @@ export function MapEditor({ config, onBack, initialData, initialTileTypes, onLoa
     selection: isSelecting && selectionStart && selectionEnd ? { start: selectionStart, end: selectionEnd, shape: selectedShape } : undefined,
     trianglePoints,
     getTileColor,
+    getTileImage,
     mouseTile,
   })
+
+  useEffect(() => {
+    const rulerCanvas = rulerRef.current
+    const container = containerRef.current
+    if (!rulerCanvas || !container) return
+
+    const resizeCanvas = () => {
+      rulerCanvas.width = container.clientWidth
+      rulerCanvas.height = container.clientHeight
+      const ctx = rulerCanvas.getContext('2d')
+      if (ctx) {
+        renderRulers(ctx, rulerCanvas, camera, config, mouseTile ?? undefined)
+      }
+    }
+
+    resizeCanvas()
+
+    const resizeObserver = new ResizeObserver(resizeCanvas)
+    resizeObserver.observe(container)
+
+    return () => resizeObserver.disconnect()
+  }, [camera, config, mouseTile])
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -341,6 +490,33 @@ export function MapEditor({ config, onBack, initialData, initialTileTypes, onLoa
       window.removeEventListener('keyup', handleKeyUp)
     }
   }, [undo, redo, tileTypes])
+
+  useEffect(() => {
+    const container = containerRef.current
+    if (!container) return
+
+    const onWheel = (e: WheelEvent) => {
+      e.preventDefault()
+      const rect = container.getBoundingClientRect()
+      const mouseX = e.clientX - rect.left
+      const mouseY = e.clientY - rect.top
+      
+      const worldBefore = screenToWorld(mouseX, mouseY, camera)
+      const delta = -e.deltaY * 0.001
+      const newZoom = Math.max(0.1, Math.min(5, camera.zoom * (1 + delta)))
+      
+      const newCameraX = mouseX - worldBefore.x * newZoom
+      const newCameraY = mouseY - worldBefore.y * newZoom
+      
+      setCamera({ x: newCameraX, y: newCameraY, zoom: newZoom })
+    }
+
+    container.addEventListener('wheel', onWheel, { passive: false })
+
+    return () => {
+      container.removeEventListener('wheel', onWheel)
+    }
+  }, [camera])
 
   const handleRemoveTile = (id: number) => {
     if (selectedTile === id) {
@@ -417,17 +593,23 @@ export function MapEditor({ config, onBack, initialData, initialTileTypes, onLoa
           onRemoveTile={handleRemoveTile}
         />
         
-        <div ref={containerRef} className="flex-1 relative">
+        <div ref={containerRef} 
+          className={`flex-1 relative ${isPanning || spacePressed ? 'cursor-grab' : 'cursor-crosshair'}`}
+          onMouseDown={handleMouseDown}
+          onMouseMove={handleMouseMove}
+          onMouseUp={handleMouseUp}
+          onMouseLeave={handleMouseUp}
+          onContextMenu={(e) => e.preventDefault()}
+        >
           <canvas
             ref={canvasRef}
-            onWheel={handleWheel}
-            onMouseDown={handleMouseDown}
-            onMouseMove={handleMouseMove}
-            onMouseUp={handleMouseUp}
-            onMouseLeave={handleMouseUp}
-            onContextMenu={(e) => e.preventDefault()}
-            className={`w-full h-full ${isPanning || spacePressed ? 'cursor-grab' : 'cursor-crosshair'}`}
-            style={{ display: 'block' }}
+            className="absolute top-0 left-0"
+          />
+          <canvas
+            ref={rulerRef}
+            className="absolute top-0 left-0 pointer-events-none z-10"
+            width={800}
+            height={600}
           />
           
           <div className="absolute top-[34px] left-[34px] flex gap-2">

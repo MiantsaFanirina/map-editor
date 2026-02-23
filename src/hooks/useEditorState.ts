@@ -27,6 +27,7 @@ interface UseEditorStateReturn {
   updateTileType: ReturnType<typeof useTileTypes>['updateTileType']
   removeTileType: ReturnType<typeof useTileTypes>['removeTileType']
   getTileColor: ReturnType<typeof useTileTypes>['getTileColor']
+  getTileImage: ReturnType<typeof useTileTypes>['getTileImage']
   startAction: (currentMap: number[][]) => void
   endAction: (finalMap: number[][]) => void
 }
@@ -77,6 +78,7 @@ export function useEditorState(options: UseEditorStateOptions): UseEditorStateRe
     updateTileType: tileTypesHook.updateTileType,
     removeTileType: tileTypesHook.removeTileType,
     getTileColor: tileTypesHook.getTileColor,
+    getTileImage: tileTypesHook.getTileImage,
     startAction,
     endAction,
   }
