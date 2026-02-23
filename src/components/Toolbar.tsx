@@ -1,4 +1,9 @@
 import type { MapConfig } from '../types'
+import { motion } from 'framer-motion'
+import { 
+  FaUndo, FaRedo, FaSave, FaFolderOpen, FaDownload, FaEye, 
+  FaQuestionCircle, FaPlus, FaFileImport 
+} from 'react-icons/fa'
 
 interface ToolbarProps {
   config: MapConfig
@@ -13,6 +18,42 @@ interface ToolbarProps {
   onImport: () => void
   onTutorial: () => void
   onNewMap: () => void
+}
+
+const ToolbarButton = ({ 
+  onClick, 
+  disabled, 
+  title, 
+  icon, 
+  variant = 'default',
+  className = '' 
+}: { 
+  onClick: () => void
+  disabled?: boolean
+  title: string
+  icon: React.ReactNode
+  variant?: 'default' | 'primary' | 'secondary' | 'accent'
+  className?: string
+}) => {
+  const variants = {
+    default: 'glass hover:bg-white/10',
+    primary: 'bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 shadow-lg shadow-indigo-500/20',
+    secondary: 'bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 shadow-lg shadow-cyan-500/20',
+    accent: 'bg-gradient-to-r from-pink-600 to-rose-600 hover:from-pink-500 hover:to-rose-500 shadow-lg shadow-pink-500/20',
+  }
+
+  return (
+    <motion.button
+      whileHover={!disabled ? { scale: 1.05, y: -2 } : undefined}
+      whileTap={!disabled ? { scale: 0.95 } : undefined}
+      onClick={onClick}
+      disabled={disabled}
+      title={title}
+      className={`w-11 h-11 flex items-center justify-center rounded-xl transition-all ${variants[variant]} ${disabled ? 'opacity-40' : 'cursor-pointer'} ${className}`}
+    >
+      {icon}
+    </motion.button>
+  )
 }
 
 export function Toolbar({
@@ -30,87 +71,85 @@ export function Toolbar({
   onNewMap,
 }: ToolbarProps) {
   return (
-    <div className="flex items-center justify-between px-4 py-3 bg-gray-800 border-b border-gray-700 shadow-lg">
+    <motion.div 
+      initial={{ y: -20, opacity: 0 }}
+      animate={{ y: 0, opacity: 1 }}
+      className="flex items-center justify-between px-6 py-3 glass border-b border-white/10 shadow-xl"
+    >
       <div className="flex items-center gap-4">
-        <h1 className="text-xl font-bold text-emerald-400">Map Editor</h1>
-        <span className="text-sm text-gray-400">
+        <motion.h1 
+          className="text-xl font-bold gradient-text cursor-pointer"
+          whileHover={{ scale: 1.02 }}
+        >
+          Map Editor
+        </motion.h1>
+        <div className="h-6 w-px bg-white/10" />
+        <span className="text-sm text-gray-400 bg-white/5 px-3 py-1 rounded-lg">
           {config.cols}×{config.rows} • {config.tileSize}px
         </span>
       </div>
       
       <div className="flex items-center gap-2">
-        <button
+        <ToolbarButton
           onClick={onUndo}
           disabled={!canUndo}
           title="Undo (Ctrl+Z)"
-          className="w-10 h-10 flex items-center justify-center bg-gray-600 hover:bg-gray-500 disabled:opacity-40 disabled:cursor-not-allowed rounded-lg transition-colors shadow-md text-lg"
-        >
-          ↩
-        </button>
-        <button
+          icon={<FaUndo className="text-white" />}
+        />
+        <ToolbarButton
           onClick={onRedo}
           disabled={!canRedo}
           title="Redo (Ctrl+Y)"
-          className="w-10 h-10 flex items-center justify-center bg-gray-600 hover:bg-gray-500 disabled:opacity-40 disabled:cursor-not-allowed rounded-lg transition-colors shadow-md text-lg"
-        >
-          ↪
-        </button>
+          icon={<FaRedo className="text-white" />}
+        />
         
-        <div className="w-px h-8 bg-gray-600 mx-1" />
+        <div className="w-px h-8 bg-white/10 mx-2" />
         
-        <button
+        <ToolbarButton
           onClick={onSave}
           title="Save to Database"
-          className="w-10 h-10 flex items-center justify-center bg-blue-600 hover:bg-blue-500 rounded-lg transition-colors shadow-md text-lg"
-        >
-          💾
-        </button>
-        <button
+          icon={<FaSave className="text-white" />}
+          variant="primary"
+        />
+        <ToolbarButton
           onClick={onLoad}
           title="Load from Database"
-          className="w-10 h-10 flex items-center justify-center bg-blue-600 hover:bg-blue-500 rounded-lg transition-colors shadow-md text-lg"
-        >
-          📂
-        </button>
-        <button
+          icon={<FaFolderOpen className="text-white" />}
+          variant="primary"
+        />
+        <ToolbarButton
           onClick={onImport}
           title="Import from TXT"
-          className="w-10 h-10 flex items-center justify-center bg-blue-600 hover:bg-blue-500 rounded-lg transition-colors shadow-md text-lg"
-        >
-          📥
-        </button>
+          icon={<FaFileImport className="text-white" />}
+          variant="primary"
+        />
         
-        <div className="w-px h-8 bg-gray-600 mx-1" />
+        <div className="w-px h-8 bg-white/10 mx-2" />
         
-        <button
+        <ToolbarButton
           onClick={onPreview}
           title="Preview"
-          className="w-10 h-10 flex items-center justify-center bg-amber-600 hover:bg-amber-500 rounded-lg transition-colors shadow-md text-lg"
-        >
-          👁
-        </button>
-        <button
+          icon={<FaEye className="text-white" />}
+          variant="secondary"
+        />
+        <ToolbarButton
           onClick={onDownload}
           title="Download"
-          className="w-10 h-10 flex items-center justify-center bg-emerald-600 hover:bg-emerald-500 rounded-lg transition-colors shadow-md text-lg"
-        >
-          ↓
-        </button>
-        <button
+          icon={<FaDownload className="text-white" />}
+          variant="secondary"
+        />
+        <ToolbarButton
           onClick={onTutorial}
           title="Tutorial"
-          className="w-10 h-10 flex items-center justify-center bg-purple-600 hover:bg-purple-500 rounded-lg transition-colors shadow-md text-lg"
-        >
-          ?
-        </button>
-        <button
+          icon={<FaQuestionCircle className="text-white" />}
+          variant="accent"
+        />
+        <ToolbarButton
           onClick={onNewMap}
           title="New Map"
-          className="w-10 h-10 flex items-center justify-center bg-gray-600 hover:bg-gray-500 rounded-lg transition-colors shadow-md text-lg"
-        >
-          +
-        </button>
+          icon={<FaPlus className="text-white" />}
+        />
       </div>
-    </div>
+    </motion.div>
   )
 }

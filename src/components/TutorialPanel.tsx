@@ -1,4 +1,8 @@
 import { useState } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
+import { FaTimes, FaMousePointer, FaThLarge, FaVectorSquare, FaEye, 
+  FaUndo, FaSave, FaKeyboard, FaBolt, FaTrashAlt,
+  FaPlus, FaPencilAlt, FaGripLines, FaHandPaper } from 'react-icons/fa'
 
 interface TutorialPanelProps {
   onClose: () => void
@@ -7,140 +11,252 @@ interface TutorialPanelProps {
 const sections = [
   {
     title: 'Drawing',
-    icon: '',
+    icon: FaMousePointer,
+    color: 'from-blue-500 to-cyan-500',
     items: [
-      { key: 'click', desc: 'Place single tile', shortcut: 'Left Click' },
-      { key: 'drag', desc: 'Paint continuously', shortcut: 'Left Drag' },
-      { key: 'right', desc: 'Reset to grass', shortcut: 'Right Click' },
+      { key: 'click', desc: 'Place a single tile', shortcut: 'Left Click', icon: FaBolt },
+      { key: 'drag', desc: 'Paint continuously', shortcut: 'Left Drag', icon: FaHandPaper },
+      { key: 'right', desc: 'Reset tile to default', shortcut: 'Right Click', icon: FaUndo },
     ]
   },
   {
     title: 'Tile Types',
-    icon: '',
+    icon: FaThLarge,
+    color: 'from-purple-500 to-pink-500',
     items: [
-      { key: 'select', desc: 'Select tile type', shortcut: 'Click sidebar' },
-      { key: 'add', desc: 'Add new tile type', shortcut: '+ Add Tile btn' },
-      { key: 'edit', desc: 'Edit tile (color/name)', shortcut: '✏️' },
-      { key: 'delete', desc: 'Remove tile type', shortcut: '🗑️' },
+      { key: 'select', desc: 'Choose a tile type', shortcut: 'Click in sidebar', icon: FaMousePointer },
+      { key: 'add', desc: 'Create new tile type', shortcut: '+ Add Tile button', icon: FaPlus },
+      { key: 'edit', desc: 'Edit tile color/name', shortcut: 'Edit icon', icon: FaPencilAlt },
+      { key: 'delete', desc: 'Remove tile type', shortcut: 'Trash icon', icon: FaTrashAlt },
     ]
   },
   {
     title: 'Shapes',
-    icon: '',
+    icon: FaVectorSquare,
+    color: 'from-orange-500 to-red-500',
     items: [
-      { key: 'shift', desc: 'Enable shapes', shortcut: 'Hold SHIFT' },
-      { key: 'rect', desc: 'Rectangle', shortcut: 'R + Drag' },
-      { key: 'circle', desc: 'Circle/Ellipse', shortcut: 'C + Drag' },
-      { key: 'line', desc: 'Draw line', shortcut: 'L + Drag' },
-      { key: 'fill', desc: 'Fill entire map', shortcut: 'F + Drag' },
-      { key: 'triangle', desc: 'Triangle (3 points)', shortcut: 'T + 3 Clicks' },
+      { key: 'shift', desc: 'Enable shape mode', shortcut: 'Hold SHIFT', icon: FaBolt },
+      { key: 'rect', desc: 'Draw rectangle', shortcut: 'R + Drag', icon: FaVectorSquare },
+      { key: 'circle', desc: 'Draw circle', shortcut: 'C + Drag', icon: FaGripLines },
+      { key: 'line', desc: 'Draw line', shortcut: 'L + Drag', icon: FaGripLines },
+      { key: 'fill', desc: 'Fill entire map', shortcut: 'F + Drag', icon: FaThLarge },
+      { key: 'triangle', desc: 'Draw triangle', shortcut: 'T + 3 Clicks', icon: FaVectorSquare },
     ]
   },
   {
-    title: 'View',
-    icon: '',
+    title: 'Navigation',
+    icon: FaEye,
+    color: 'from-green-500 to-emerald-500',
     items: [
-      { key: 'zoom', desc: 'Zoom in/out', shortcut: 'Mouse Wheel' },
-      { key: 'pan1', desc: 'Pan view', shortcut: 'SPACE + Drag' },
-      { key: 'pan2', desc: 'Pan view', shortcut: 'Middle Mouse' },
+      { key: 'zoom', desc: 'Zoom in or out', shortcut: 'Scroll Wheel', icon: FaBolt },
+      { key: 'pan1', desc: 'Pan the canvas', shortcut: 'Space + Drag', icon: FaHandPaper },
+      { key: 'pan2', desc: 'Pan with mouse', shortcut: 'Middle Click Drag', icon: FaHandPaper },
     ]
   },
   {
-    title: 'Edit',
-    icon: '',
+    title: 'History',
+    icon: FaUndo,
+    color: 'from-amber-500 to-yellow-500',
     items: [
-      { key: 'undo', desc: 'Undo', shortcut: 'Ctrl+Z' },
-      { key: 'redo', desc: 'Redo', shortcut: 'Ctrl+Y' },
+      { key: 'undo', desc: 'Undo last action', shortcut: 'Ctrl + Z', icon: FaUndo },
+      { key: 'redo', desc: 'Redo an action', shortcut: 'Ctrl + Y', icon: FaUndo },
     ]
   },
   {
-    title: 'Save/Load',
-    icon: '',
+    title: 'Data',
+    icon: FaSave,
+    color: 'from-indigo-500 to-blue-500',
     items: [
-      { key: 'save', desc: 'Save to browser', shortcut: '💾' },
-      { key: 'load', desc: 'Load saved map', shortcut: '📂' },
-      { key: 'import', desc: 'Import TXT file', shortcut: '📥' },
-      { key: 'export', desc: 'Export as TXT', shortcut: '↓' },
+      { key: 'save', desc: 'Save map to browser', shortcut: 'Save button', icon: FaSave },
+      { key: 'load', desc: 'Load saved map', shortcut: 'Load button', icon: FaThLarge },
+      { key: 'import', desc: 'Import from TXT', shortcut: 'Import button', icon: FaPlus },
+      { key: 'export', desc: 'Download as TXT', shortcut: 'Download button', icon: FaSave },
     ]
   },
 ]
 
 export function TutorialPanel({ onClose }: TutorialPanelProps) {
   const [activeTab, setActiveTab] = useState(0)
+  const [showAll, setShowAll] = useState(false)
 
   return (
-    <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
-      <div className="bg-gray-900 rounded-2xl w-full max-w-4xl max-h-[85vh] overflow-hidden shadow-2xl border border-gray-700 flex flex-col">
-        
-        {/* Header */}
-        <div className="bg-gradient-to-r from-purple-900/50 to-emerald-900/50 p-6 border-b border-gray-700">
-          <div className="flex justify-between items-center">
-            <div>
-              <h2 className="text-2xl font-bold text-white flex items-center gap-3">
-                <span className="text-3xl">️</span>
-                Map Editor Tutorial
-              </h2>
-              <p className="text-gray-400 mt-1">Learn how to use all the features</p>
-            </div>
-            <button
-              onClick={onClose}
-              className="w-10 h-10 rounded-full bg-gray-800 hover:bg-gray-700 text-gray-400 hover:text-white flex items-center justify-center transition-colors text-xl"
-            >
-              ✕
-            </button>
-          </div>
-        </div>
-        
-        {/* Tabs */}
-        <div className="flex gap-1 p-2 bg-gray-800/50 border-b border-gray-700 overflow-x-auto">
-          {sections.map((section, i) => (
-            <button
-              key={section.title}
-              onClick={() => setActiveTab(i)}
-              className={`px-4 py-2 rounded-lg font-medium transition-all whitespace-nowrap ${
-                activeTab === i
-                  ? 'bg-purple-600 text-white shadow-lg'
-                  : 'text-gray-400 hover:text-white hover:bg-gray-700'
-              }`}
-            >
-              <span className="mr-2">{section.icon}</span>
-              {section.title}
-            </button>
-          ))}
-        </div>
-        
-        {/* Content */}
-        <div className="flex-1 overflow-auto p-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {sections[activeTab].items.map((item) => (
-              <div
-                key={item.key}
-                className="bg-gray-800/50 rounded-xl p-4 border border-gray-700 hover:border-purple-500/50 transition-colors group"
+    <motion.div 
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      style={{ background: 'radial-gradient(circle at center, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0.95) 100%)' }}
+      onClick={onClose}
+    >
+      <motion.div 
+        initial={{ opacity: 0, scale: 0.8, y: 50 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        exit={{ opacity: 0, scale: 0.8, y: 50 }}
+        transition={{ type: "spring", stiffness: 260, damping: 20 }}
+        className="w-full max-w-5xl max-h-[90vh] flex flex-col overflow-hidden"
+        style={{
+          background: 'linear-gradient(135deg, rgba(30, 30, 50, 0.95) 0%, rgba(20, 20, 40, 0.98) 100%)',
+          borderRadius: '24px',
+          border: '1px solid rgba(255, 255, 255, 0.1)',
+          boxShadow: '0 25px 80px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.1)'
+        }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="relative p-6 pb-4 overflow-hidden">
+          <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-500/20 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
+          <div className="absolute bottom-0 left-0 w-48 h-48 bg-purple-500/15 rounded-full blur-3xl translate-y-1/2 -translate-x-1/2" />
+          
+          <div className="relative flex justify-between items-start">
+            <div className="flex items-center gap-4">
+              <motion.div 
+                initial={{ scale: 0, rotate: -180 }}
+                animate={{ scale: 1, rotate: 0 }}
+                transition={{ delay: 0.2, type: "spring", stiffness: 200 }}
+                className="w-16 h-16 rounded-2xl bg-gradient-to-br from-indigo-500 via-purple-500 to-indigo-500 flex items-center justify-center shadow-xl shadow-purple-500/30"
               >
-                <div className="flex justify-between items-center">
-                  <span className="text-gray-300">{item.desc}</span>
-                  <span className="px-3 py-1 bg-gray-700 rounded-lg text-sm font-mono text-emerald-400 group-hover:bg-gray-600 transition-colors">
-                    {item.shortcut}
-                  </span>
-                </div>
+                <span className="text-3xl text-white font-bold">?</span>
+              </motion.div>
+              <div>
+                <motion.h2 
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0.15 }}
+                  className="text-2xl font-bold text-white"
+                >
+                  Welcome to Map Editor
+                </motion.h2>
+                <motion.p 
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0.2 }}
+                  className="text-gray-400 mt-1"
+                >
+                  Master all the tools to create amazing maps
+                </motion.p>
               </div>
-            ))}
+            </div>
+            <motion.button
+              initial={{ opacity: 0, scale: 0 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: 0.3 }}
+              whileHover={{ scale: 1.1, rotate: 90 }}
+              whileTap={{ scale: 0.9 }}
+              onClick={onClose}
+              className="w-10 h-10 rounded-xl flex items-center justify-center text-gray-400 hover:text-white hover:bg-white/10 transition-all cursor-pointer"
+            >
+              <FaTimes />
+            </motion.button>
           </div>
+        </div>
+
+        <div className="flex gap-2 px-6 py-4 overflow-x-auto scrollbar-thin">
+          {sections.map((section, i) => {
+            const Icon = section.icon
+            return (
+              <motion.button
+                key={section.title}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.1 * i }}
+                whileHover={{ scale: 1.02, y: -2 }}
+                whileTap={{ scale: 0.98 }}
+                onClick={() => { setActiveTab(i); setShowAll(false) }}
+                className={`px-4 py-2.5 rounded-xl font-medium transition-all whitespace-nowrap flex items-center gap-2 cursor-pointer ${
+                  !showAll && activeTab === i
+                    ? `bg-gradient-to-r ${section.color} text-white shadow-lg`
+                    : 'bg-white/5 text-gray-400 hover:text-white hover:bg-white/10'
+                }`}
+              >
+                <Icon className="text-sm" />
+                {section.title}
+              </motion.button>
+            )
+          })}
+          <motion.button
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.6 }}
+            whileHover={{ scale: 1.02, y: -2 }}
+            whileTap={{ scale: 0.98 }}
+            onClick={() => setShowAll(!showAll)}
+            className={`px-4 py-2.5 rounded-xl font-medium transition-all whitespace-nowrap flex items-center gap-2 cursor-pointer ${
+              showAll
+                ? 'bg-gradient-to-r from-indigo-500 to-purple-500 text-white shadow-lg'
+                : 'bg-white/5 text-gray-400 hover:text-white hover:bg-white/10'
+            }`}
+          >
+            <FaKeyboard className="text-sm" />
+            View All
+          </motion.button>
+        </div>
+
+        <div className="flex-1 overflow-auto px-6 py-6 scrollbar-thin" style={{ minHeight: '640px', maxHeight: '640px' }}>
+          <AnimatePresence mode="wait">
+            <motion.div 
+              key={showAll ? 'all' : activeTab.toString()}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              transition={{ duration: 0.2 }}
+              className="grid grid-cols-2 gap-4"
+            >
+              {(showAll ? sections.flatMap(s => s.items.map(item => ({ ...item, section: s.title, color: s.color }))) : sections[activeTab].items).map((item: any, i: number) => {
+                const Icon = item.icon || FaBolt
+                const color = item.color || sections[activeTab].color
+                return (
+                  <motion.div
+                    key={item.key}
+                    initial={{ opacity: 0, scale: 0.9, y: 10 }}
+                    animate={{ opacity: 1, scale: 1, y: 0 }}
+                    transition={{ delay: showAll ? 0.02 * i : 0.05 * i }}
+                    whileHover={{ scale: 1.02, y: -2 }}
+                    className="group relative p-4 rounded-2xl overflow-hidden"
+                    style={{
+                      background: 'rgba(255, 255, 255, 0.03)',
+                      border: '1px solid rgba(255, 255, 255, 0.06)',
+                    }}
+                  >
+                    <div 
+                      className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+                      style={{
+                        background: `linear-gradient(135deg, ${color.replace('from-', 'rgba(').replace(' to-', ', rgba(').replace('-500', ', 0.15)')})`,
+                      }}
+                    />
+                    <div className="relative flex items-center justify-between gap-4 flex-wrap">
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${color} flex items-center justify-center shadow-lg flex-shrink-0`}>
+                          <Icon className="text-white text-sm" />
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-white font-medium truncate">{item.desc}</p>
+                          {showAll && <p className="text-xs text-gray-500">{item.section}</p>}
+                        </div>
+                      </div>
+                      <span className="px-2.5 py-1 rounded-lg text-xs font-mono font-semibold text-white/80 whitespace-nowrap flex-shrink-0" style={{ background: 'rgba(255,255,255,0.1)' }}>
+                        {item.shortcut}
+                      </span>
+                    </div>
+                  </motion.div>
+                )
+              })}
+            </motion.div>
+          </AnimatePresence>
         </div>
         
-        {/* Footer */}
-        <div className="p-4 border-t border-gray-700 bg-gray-800/30 flex justify-between items-center">
-          <div className="text-sm text-gray-500">
-            Tip: Press <span className="text-emerald-400 font-mono">?</span> to toggle this panel
+        <div className="p-5 pt-4 flex justify-between items-center" style={{ borderTop: '1px solid rgba(255, 255, 255, 0.06)' }}>
+          <div className="flex items-center gap-3">
+            <span className="text-sm text-gray-400">Press <span className="text-white font-mono px-2 py-0.5 rounded bg-white/10">?</span> to toggle</span>
           </div>
-          <button
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
             onClick={onClose}
-            className="px-8 py-3 bg-gradient-to-r from-purple-600 to-emerald-600 hover:from-purple-500 hover:to-emerald-500 text-white font-bold rounded-xl transition-all shadow-lg hover:shadow-purple-500/25"
+            className="px-8 py-3 bg-gradient-to-r from-indigo-500 via-purple-500 to-indigo-500 text-white font-bold rounded-xl transition-all shadow-xl shadow-purple-500/25 hover:shadow-purple-500/40 cursor-pointer"
           >
-            Let's Go!
-          </button>
+            Got it!
+          </motion.button>
         </div>
-      </div>
-    </div>
+      </motion.div>
+    </motion.div>
   )
 }

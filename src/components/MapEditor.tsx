@@ -612,7 +612,7 @@ export function MapEditor({ config, onBack, initialData, initialTileTypes, onLoa
             height={600}
           />
           
-          <div className="absolute top-[34px] left-[34px] flex gap-2">
+          <div className="absolute bottom-4 right-4">
             <ShapeSelector
               selectedShape={selectedShape}
               onSelectShape={(shape) => { setSelectedShape(shape); setTrianglePoints([]) }}

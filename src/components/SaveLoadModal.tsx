@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react'
 import { initDatabase, getAllMaps, saveMap, loadMap, deleteMap, getCurrentSession, saveCurrentSession, type SavedMap } from '../utils/database'
 import type { CustomTileType } from '../hooks/useTileTypes'
+import { motion, AnimatePresence } from 'framer-motion'
+import { FaSave, FaFolderOpen, FaTrash, FaTimes } from 'react-icons/fa'
 
 interface SaveLoadModalProps {
   mode: 'save' | 'load'
@@ -70,17 +72,51 @@ export function SaveLoadModal({ mode, mapData, config, tileTypes, onLoad, onClos
   }
 
   return (
-    <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50">
-      <div className="bg-gray-800 rounded-xl p-6 max-w-lg w-full mx-4 shadow-2xl border border-gray-600 max-h-[80vh] flex flex-col">
-        <div className="flex justify-between items-center mb-4">
-          <h2 className="text-xl font-bold text-emerald-400 flex items-center gap-2">
-            {mode === 'save' ? '💾 Save Map' : '📂 Load Map'}
+    <motion.div 
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 modal-overlay flex items-center justify-center z-50"
+      onClick={onClose}
+    >
+      <motion.div 
+        initial={{ opacity: 0, scale: 0.9, y: 20 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        exit={{ opacity: 0, scale: 0.9, y: 20 }}
+        transition={{ type: "spring", stiffness: 300, damping: 25 }}
+        className="glass-card rounded-2xl p-6 max-w-lg w-full mx-4 max-h-[80vh] flex flex-col"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex justify-between items-center mb-6">
+          <h2 className="text-xl font-bold text-white flex items-center gap-3">
+            {mode === 'save' ? (
+              <>
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-600 to-purple-600 flex items-center justify-center">
+                  <FaSave className="text-white" />
+                </div>
+                Save Map
+              </>
+            ) : (
+              <>
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-cyan-600 to-blue-600 flex items-center justify-center">
+                  <FaFolderOpen className="text-white" />
+                </div>
+                Load Map
+              </>
+            )}
           </h2>
-          <button onClick={onClose} className="text-gray-400 hover:text-white text-2xl">✕</button>
+          <motion.button 
+            whileHover={{ scale: 1.1, rotate: 90 }}
+            whileTap={{ scale: 0.9 }}
+            onClick={onClose} 
+            className="p-2 text-gray-400 hover:text-white transition-colors cursor-pointer"
+          >
+            <FaTimes />
+          </motion.button>
         </div>
 
         {mode === 'save' ? (
-          <div className="space-y-4">
+          <div className="space-y-5">
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-2">Map Name</label>
               <input
@@ -88,53 +124,90 @@ export function SaveLoadModal({ mode, mapData, config, tileTypes, onLoad, onClos
                 value={saveName}
                 onChange={(e) => setSaveName(e.target.value)}
                 placeholder="My awesome map"
-                className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-emerald-400"
+                className="w-full px-4 py-3 glass-input rounded-xl text-white"
+                autoFocus
               />
             </div>
-            <div className="p-3 bg-gray-700 rounded-lg text-sm">
+            <div className="p-4 glass rounded-xl">
               {currentSavedId ? (
-                <p className="text-blue-400">Updating existing save</p>
+                <p className="text-indigo-300 text-sm">Updating existing save</p>
               ) : (
-                <p className="text-gray-400">Saving as new map</p>
+                <p className="text-gray-400 text-sm">Saving as new map</p>
               )}
-              <p className="text-gray-400">Size: {config.cols}×{config.rows} tiles</p>
-              {tileTypes && <p className="text-gray-400">Tile types: {tileTypes.length}</p>}
+              <p className="text-gray-400 text-sm mt-1">Size: {config.cols}×{config.rows} tiles</p>
+              {tileTypes && <p className="text-gray-400 text-sm">Tile types: {tileTypes.length}</p>}
             </div>
-            {message && <p className="text-emerald-400 text-sm">{message}</p>}
-            <button
+            <AnimatePresence>
+              {message && (
+                <motion.p
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0 }}
+                  className="text-indigo-300 text-sm font-medium"
+                >
+                  {message}
+                </motion.p>
+              )}
+            </AnimatePresence>
+            <motion.button
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
               onClick={handleSave}
-              className="w-full py-3 bg-emerald-600 hover:bg-emerald-500 rounded-lg font-semibold"
+              className="w-full py-4 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 rounded-xl font-semibold flex items-center justify-center gap-2 cursor-pointer"
             >
-              💾 Save
-            </button>
+              <FaSave /> Save
+            </motion.button>
           </div>
         ) : (
-          <div className="flex-1 overflow-auto">
+          <div className="flex-1 overflow-auto scrollbar-thin">
             {loading ? (
-              <p className="text-gray-400">Loading...</p>
+              <div className="text-center py-8">
+                <motion.div
+                  animate={{ rotate: 360 }}
+                  transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                  className="w-8 h-8 border-2 border-indigo-500 border-t-transparent rounded-full mx-auto"
+                />
+              </div>
             ) : maps.length === 0 ? (
-              <p className="text-gray-400 text-center py-8">No saved maps</p>
+              <div className="text-center py-8">
+                <div className="w-16 h-16 mx-auto mb-4 rounded-xl glass flex items-center justify-center">
+                  <FaFolderOpen className="text-2xl text-gray-500" />
+                </div>
+                <p className="text-gray-400">No saved maps</p>
+              </div>
             ) : (
               <div className="space-y-2">
-                {maps.map((m) => (
-                  <div key={m.id} className="flex items-center justify-between p-3 bg-gray-700 rounded-lg">
-                    <div className="flex-1 cursor-pointer" onClick={() => handleLoad(m)}>
-                      <p className="font-medium">{m.name}</p>
-                      <p className="text-xs text-gray-400">{m.cols}×{m.rows} • {m.tileSize}px</p>
-                    </div>
-                    <button
-                      onClick={() => handleDelete(m.id)}
-                      className="px-3 py-1 bg-red-600 hover:bg-red-500 rounded text-sm"
+                {maps.map((m, i) => (
+                  <motion.div
+                    key={m.id}
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: i * 0.05 }}
+                    className="flex items-center justify-between p-4 glass rounded-xl hover:bg-white/10 transition-all group"
+                  >
+                    <motion.button
+                      whileHover={{ scale: 1.01 }}
+                      onClick={() => handleLoad(m)}
+                      className="flex-1 text-left cursor-pointer"
                     >
-                      🗑
-                    </button>
-                  </div>
+                      <p className="font-medium text-white group-hover:text-indigo-300 transition-colors">{m.name}</p>
+                      <p className="text-sm text-gray-400 mt-1">{m.cols}×{m.rows} • {m.tileSize}px • {new Date(m.updatedAt).toLocaleDateString()}</p>
+                    </motion.button>
+                    <motion.button
+                      whileHover={{ scale: 1.1 }}
+                      whileTap={{ scale: 0.9 }}
+                      onClick={() => handleDelete(m.id)}
+                      className="p-3 text-gray-500 hover:text-red-400 transition-colors cursor-pointer"
+                    >
+                      <FaTrash />
+                    </motion.button>
+                  </motion.div>
                 ))}
               </div>
             )}
           </div>
         )}
-      </div>
-    </div>
+      </motion.div>
+    </motion.div>
   )
 }
