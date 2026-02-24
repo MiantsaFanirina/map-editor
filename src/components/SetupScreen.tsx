@@ -65,7 +65,7 @@ export function SetupScreen({ onStart, onBack }: SetupScreenProps) {
   const handleImport = () => {
     const result = importFromTxt(importText)
     if (result) {
-      onStart({ rows: result.rows, cols: result.cols, tileSize: DEFAULT_TILE_SIZE }, result.data)
+      onStart({ rows: result.rows, cols: result.cols, tileSize: DEFAULT_TILE_SIZE }, result.data, result.tileTypes)
     } else {
       setImportError('Invalid format. Use space-separated values.')
     }

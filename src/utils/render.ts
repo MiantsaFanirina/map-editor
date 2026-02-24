@@ -69,7 +69,7 @@ export function renderCanvas({
           tileImageCache.set(imageUrl, img)
         }
         
-        if (img.complete) {
+        if (img.complete && img.naturalWidth > 0) {
           ctx.drawImage(
             img,
             tileX * config.tileSize,
@@ -94,6 +94,16 @@ export function renderCanvas({
           config.tileSize,
           config.tileSize
         )
+      }
+
+      if (camera.zoom >= 0.5) {
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.5)'
+        ctx.font = `bold ${Math.max(10, config.tileSize * 0.25 / camera.zoom)}px "JetBrains Mono", monospace`
+        ctx.textAlign = 'left'
+        ctx.textBaseline = 'top'
+        const x = tileX * config.tileSize + config.tileSize * 0.08
+        const y = tileY * config.tileSize + config.tileSize * 0.08
+        ctx.fillText(tileId.toString(), x, y)
       }
     }
   }

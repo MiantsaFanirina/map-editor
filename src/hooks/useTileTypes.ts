@@ -19,7 +19,11 @@ export function useTileTypes(initialValue?: string) {
       try {
         return JSON.parse(initialValue)
       } catch {
-        // continue to localStorage fallback
+        try {
+          return tileTypesFromExport(initialValue)
+        } catch {
+          // continue to localStorage fallback
+        }
       }
     }
     const saved = localStorage.getItem(STORAGE_KEY)
@@ -37,10 +41,10 @@ export function useTileTypes(initialValue?: string) {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(tileTypes))
   }, [tileTypes])
 
-  const addTileType = useCallback((color: string, label: string, image?: string) => {
+  const addTileType = useCallback((color: string, label: string, image?: string, id?: number) => {
     setTileTypes(prev => {
       const maxId = prev.length > 0 ? Math.max(...prev.map(t => t.id)) : 0
-      return [...prev, { id: maxId + 1, color, label, image }]
+      return [...prev, { id: id ?? maxId + 1, color, label, image }]
     })
   }, [])
 
@@ -96,11 +100,22 @@ export function tileTypesFromExport(content: string): CustomTileType[] {
     return content.split('\n')
       .filter(line => line.trim())
       .map(line => {
-        const parts = line.split(':')
-        const id = parseInt(parts[0])
-        const color = parts[1] || '#4ade80'
-        const label = parts[2] || 'Unknown'
-        const image = parts[3]
+        const dataIndex = line.indexOf('data:')
+        let id, color, label, image
+        if (dataIndex > 0) {
+          const beforeData = line.substring(0, dataIndex)
+          const dataParts = beforeData.split(':')
+          id = parseInt(dataParts[0])
+          color = dataParts[1] || '#4ade80'
+          label = dataParts[2] || 'Unknown'
+          image = line.substring(dataIndex)
+        } else {
+          const parts = line.split(':')
+          id = parseInt(parts[0])
+          color = parts[1] || '#4ade80'
+          label = parts[2] || 'Unknown'
+          image = parts[3]
+        }
         return { id, color, label, image }
       })
       .sort((a, b) => a.id - b.id)

@@ -557,7 +557,7 @@ export function MapEditor({ config, onBack, initialData, initialTileTypes, onLoa
       if (parsed.length > 0) {
         parsed.forEach(t => {
           if (!tileTypes.find(existing => existing.id === t.id)) {
-            addTileType(t.color, t.label)
+            addTileType(t.color, t.label, t.image, t.id)
           }
         })
       }
