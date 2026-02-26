@@ -187,6 +187,7 @@ body {
 
 .scrollbar-thin::-webkit-scrollbar {
   width: 6px;
+  height: 6px;
 }
 
 .scrollbar-thin::-webkit-scrollbar-track {
@@ -201,6 +202,10 @@ body {
 
 .scrollbar-thin::-webkit-scrollbar-thumb:hover {
   background: rgba(255, 255, 255, 0.3);
+}
+
+.scrollbar-thin::-webkit-scrollbar-corner {
+  background: transparent;
 }
 
 .tab-active {

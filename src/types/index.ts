@@ -14,8 +14,3 @@ export interface Point {
   x: number
   y: number
 }
-
-export interface HistoryState {
-  mapData: number[][]
-  index: number
-}

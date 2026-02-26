@@ -44,7 +44,7 @@ export function PreviewModal({ mapData, config, onClose }: PreviewModalProps) {
           </motion.button>
         </div>
         <div className="relative">
-          <pre className="bg-black/30 p-5 rounded-xl overflow-auto max-h-96 text-sm font-mono text-indigo-300 border border-white/10">
+          <pre className="bg-black/30 p-5 rounded-xl overflow-auto max-h-96 text-sm font-mono text-indigo-300 border border-white/10 scrollbar-thin">
             {previewText}
           </pre>
           <div className="absolute inset-0 pointer-events-none bg-gradient-to-b from-transparent via-transparent to-black/20 rounded-xl" />

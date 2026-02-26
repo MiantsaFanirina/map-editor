@@ -119,19 +119,28 @@ export function getTilesInShape(
   return tiles
 }
 
-export function fillTriangleWithPoints(p1: Point, p2: Point, p3: Point, config: MapConfig): Point[] {
+export function fillPolygonWithPoints(points: Point[], config: MapConfig): Point[] {
+  if (points.length < 3) return []
+  
   const tiles: Point[] = []
   
-  const minX = Math.min(p1.x, p2.x, p3.x)
-  const maxX = Math.max(p1.x, p2.x, p3.x)
-  const minY = Math.min(p1.y, p2.y, p3.y)
-  const maxY = Math.max(p1.y, p2.y, p3.y)
+  let minX = points[0].x
+  let maxX = points[0].x
+  let minY = points[0].y
+  let maxY = points[0].y
+  
+  for (const p of points) {
+    minX = Math.min(minX, p.x)
+    maxX = Math.max(maxX, p.x)
+    minY = Math.min(minY, p.y)
+    maxY = Math.max(maxY, p.y)
+  }
   
   for (let y = minY; y <= maxY; y++) {
     for (let x = minX; x <= maxX; x++) {
       if (!isValidTile(x, y, config)) continue
       
-      if (isPointInTriangle(x, y, p1, p2, p3)) {
+      if (isPointInPolygon(x, y, points) || isPointOnPolygonEdge(x, y, points)) {
         tiles.push({ x, y })
       }
     }
@@ -140,17 +149,76 @@ export function fillTriangleWithPoints(p1: Point, p2: Point, p3: Point, config: 
   return tiles
 }
 
-function isPointInTriangle(px: number, py: number, p1: Point, p2: Point, p3: Point): boolean {
-  const d1 = sign(px, py, p1.x, p1.y, p2.x, p2.y)
-  const d2 = sign(px, py, p2.x, p2.y, p3.x, p3.y)
-  const d3 = sign(px, py, p3.x, p3.y, p1.x, p1.y)
-  
-  const hasNeg = (d1 < 0) || (d2 < 0) || (d3 < 0)
-  const hasPos = (d1 > 0) || (d2 > 0) || (d3 > 0)
-  
-  return !(hasNeg && hasPos)
+function isPointOnPolygonEdge(px: number, py: number, points: Point[]): boolean {
+  const n = points.length
+  for (let i = 0; i < n; i++) {
+    const p1 = points[i]
+    const p2 = points[(i + 1) % n]
+    if (isPointOnLine(px, py, p1.x, p1.y, p2.x, p2.y)) {
+      return true
+    }
+  }
+  return false
 }
 
-function sign(px: number, py: number, x1: number, y1: number, x2: number, y2: number): number {
-  return (px - x2) * (y1 - y2) - (x1 - x2) * (py - y2)
+function isPointOnLine(px: number, py: number, x1: number, y1: number, x2: number, y2: number): boolean {
+  const tolerance = 0.1
+  const dx = x2 - x1
+  const dy = y2 - y1
+  
+  if (dx === 0 && dy === 0) {
+    return px === x1 && py === y1
+  }
+  
+  const t = (px - x1) / dx
+  if (t < 0 || t > 1) return false
+  
+  const expectedY = y1 + t * dy
+  const expectedX = x1 + t * dx
+  
+  return Math.abs(py - expectedY) <= tolerance && Math.abs(px - expectedX) <= tolerance
+}
+
+export function floodFill(startX: number, startY: number, mapData: number[][], config: MapConfig): Point[] {
+  const targetTile = mapData[startY]?.[startX]
+  if (targetTile === undefined) return []
+  
+  const filled: Point[] = []
+  const visited = new Set<string>()
+  const stack: Point[] = [{ x: startX, y: startY }]
+  
+  while (stack.length > 0) {
+    const { x, y } = stack.pop()!
+    const key = `${x},${y}`
+    
+    if (visited.has(key)) continue
+    if (!isValidTile(x, y, config)) continue
+    if (mapData[y][x] !== targetTile) continue
+    
+    visited.add(key)
+    filled.push({ x, y })
+    
+    stack.push({ x: x + 1, y })
+    stack.push({ x: x - 1, y })
+    stack.push({ x, y: y + 1 })
+    stack.push({ x, y: y - 1 })
+  }
+  
+  return filled
+}
+
+function isPointInPolygon(px: number, py: number, points: Point[]): boolean {
+  let inside = false
+  const n = points.length
+  
+  for (let i = 0, j = n - 1; i < n; j = i++) {
+    const xi = points[i].x, yi = points[i].y
+    const xj = points[j].x, yj = points[j].y
+    
+    if (((yi > py) !== (yj > py)) && (px < (xj - xi) * (py - yi) / (yj - yi) + xi)) {
+      inside = !inside
+    }
+  }
+  
+  return inside
 }

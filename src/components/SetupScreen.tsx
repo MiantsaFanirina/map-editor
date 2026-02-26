@@ -176,9 +176,9 @@ export function SetupScreen({ onStart, onBack }: SetupScreenProps) {
                     <form onSubmit={handleSubmit} className="space-y-8">
                       <div className="grid grid-cols-3 gap-6">
                         {[
-                          { label: '↕ Rows', value: rows, setValue: setRows, min: 1, max: 100 },
-                          { label: '↔ Columns', value: cols, setValue: setCols, min: 1, max: 100 },
-                          { label: '⬡ Size (px)', value: tileSize, setValue: setTileSize, min: 8, max: 128 },
+                          { label: '↕ Rows', value: rows, setValue: setRows, min: 1, max: 10000 },
+                          { label: '↔ Columns', value: cols, setValue: setCols, min: 1, max: 10000 },
+                          { label: '⬡ Size (px)', value: tileSize, setValue: setTileSize, min: 8, max: 512 },
                         ].map((field, i) => (
                           <motion.div
                             key={field.label}

@@ -8,30 +8,22 @@ export interface CustomTileType {
 }
 
 const DEFAULT_TILES: CustomTileType[] = [
-  { id: 0, color: '#000000', label: 'Empty' },
+  { id: 0, color: '#374151', label: 'Empty' },
 ]
 
 const STORAGE_KEY = 'mapEditorTileTypes'
 
-export function useTileTypes(initialValue?: string) {
+export function useTileTypes(initialValue?: string | null) {
   const [tileTypes, setTileTypes] = useState<CustomTileType[]>(() => {
-    if (initialValue) {
+    if (initialValue !== undefined && initialValue !== null) {
       try {
         return JSON.parse(initialValue)
       } catch {
         try {
           return tileTypesFromExport(initialValue)
         } catch {
-          // continue to localStorage fallback
+          // continue to default
         }
-      }
-    }
-    const saved = localStorage.getItem(STORAGE_KEY)
-    if (saved) {
-      try {
-        return JSON.parse(saved)
-      } catch {
-        return DEFAULT_TILES
       }
     }
     return DEFAULT_TILES
@@ -57,20 +49,12 @@ export function useTileTypes(initialValue?: string) {
     setTileTypes(prev => prev.filter(t => t.id !== id))
   }, [])
 
-  const resetToDefault = useCallback(() => {
-    setTileTypes(DEFAULT_TILES)
-  }, [])
-
   const getTileColor = useCallback((id: number): string => {
-    return tileTypes.find(t => t.id === id)?.color || '#000000'
+    return tileTypes.find(t => t.id === id)?.color || '#1f2937'
   }, [tileTypes])
 
   const getTileImage = useCallback((id: number): string | undefined => {
     return tileTypes.find(t => t.id === id)?.image
-  }, [tileTypes])
-
-  const getTileLabel = useCallback((id: number): string => {
-    return tileTypes.find(t => t.id === id)?.label || 'Unknown'
   }, [tileTypes])
 
   return {
@@ -78,10 +62,8 @@ export function useTileTypes(initialValue?: string) {
     addTileType,
     updateTileType,
     removeTileType,
-    resetToDefault,
     getTileColor,
     getTileImage,
-    getTileLabel,
   }
 }
 

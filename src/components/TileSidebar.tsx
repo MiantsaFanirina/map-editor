@@ -53,12 +53,17 @@ export function TileSidebar({
     }
   }
 
+  const cancelEditing = () => {
+    setEditingId(null)
+    setNewLabel('')
+    setNewColor('#6366f1')
+    setNewImage(undefined)
+  }
+
   const handleUpdate = (id: number) => {
     if (newLabel.trim()) {
       onUpdateTile(id, newColor, newLabel.trim(), newImage)
-      setEditingId(null)
-      setNewLabel('')
-      setNewImage(undefined)
+      cancelEditing()
     }
   }
 
@@ -109,10 +114,11 @@ export function TileSidebar({
                 <AnimatePresence mode="wait">
                   {editingId === tile.id ? (
                     <motion.div
+                      key={`edit-${tile.id}`}
                       initial={{ opacity: 0, height: 0 }}
                       animate={{ opacity: 1, height: 'auto' }}
                       exit={{ opacity: 0, height: 0 }}
-                      className="space-y-2" 
+                      className="space-y-2 overflow-hidden"
                       onClick={(e) => e.stopPropagation()}
                     >
                       <input
@@ -169,7 +175,7 @@ export function TileSidebar({
                         <motion.button
                           whileHover={{ scale: 1.05 }}
                           whileTap={{ scale: 0.95 }}
-                          onClick={() => setEditingId(null)}
+                          onClick={cancelEditing}
                           className="flex-1 py-2 bg-white/10 hover:bg-white/20 rounded-lg text-xs cursor-pointer"
                         >
                           Cancel

@@ -2,160 +2,18 @@ import { useState, useRef, useCallback, useEffect } from 'react'
 import type { MapConfig, Camera, Point } from '../types'
 import { useEditorState } from '../hooks/useEditorState'
 import { useCanvasLoop } from '../hooks/useCanvasLoop'
-import { screenToWorld, worldToTile, isValidTile, generatePreviewText, downloadMap, getTilesInShape, fillTriangleWithPoints } from '../utils/coordinates'
+import { screenToWorld, worldToTile, isValidTile, generatePreviewText, downloadMap, getTilesInShape, fillPolygonWithPoints, floodFill } from '../utils/coordinates'
+import { renderRulers } from '../utils/render'
 import { Toolbar, TileSidebar, PreviewModal, TutorialPanel, ShapeSelector, SaveLoadModal, ImportModal } from './index'
 import { tileTypesToExport, tileTypesFromExport } from '../hooks/useTileTypes'
 import { saveMap, saveCurrentSession, getCurrentSession, initDatabase, type SavedMap } from '../utils/database'
-
-const RULER_SIZE = 34
 
 interface MapEditorProps {
   config: MapConfig
   onBack: () => void
   initialData?: number[][] | null
-  initialTileTypes?: string
+  initialTileTypes?: string | null
   onLoadMap?: (savedMap: SavedMap) => void
-}
-
-function renderRulers(ctx: CanvasRenderingContext2D, canvas: HTMLCanvasElement, camera: Camera, config: MapConfig, mouseTile?: { x: number; y: number } | null) {
-  ctx.save()
-
-  ctx.fillStyle = '#374151'
-  ctx.fillRect(0, 0, canvas.width, RULER_SIZE)
-  ctx.fillRect(0, 0, RULER_SIZE, canvas.height)
-
-  ctx.strokeStyle = '#4b5563'
-  ctx.lineWidth = 1
-
-  const visibleLeft = -camera.x / camera.zoom
-  const visibleTop = -camera.y / camera.zoom
-  const visibleWidth = canvas.width / camera.zoom
-  const visibleHeight = canvas.height / camera.zoom
-
-  const tileStep = calculateRulerTileStep(config.tileSize, camera.zoom)
-  const step = tileStep * config.tileSize
-
-  ctx.font = '10px sans-serif'
-  ctx.fillStyle = '#9ca3af'
-  ctx.textAlign = 'center'
-
-  const startX = Math.floor(visibleLeft / step) * step
-  for (let worldX = startX; worldX < visibleLeft + visibleWidth; worldX += step) {
-    const screenX = worldX * camera.zoom + camera.x
-    if (screenX < RULER_SIZE || screenX > canvas.width) continue
-
-    const tileX = Math.floor(worldX / config.tileSize)
-    ctx.beginPath()
-    ctx.moveTo(screenX, RULER_SIZE - 8)
-    ctx.lineTo(screenX, RULER_SIZE)
-    ctx.stroke()
-
-    const isMajor = tileX % (tileStep * 2) === 0
-    if (isMajor) {
-      ctx.fillText(tileX.toString(), screenX, RULER_SIZE - 10)
-    }
-  }
-
-  ctx.textAlign = 'right'
-  const startY = Math.floor(visibleTop / step) * step
-  for (let worldY = startY; worldY < visibleTop + visibleHeight; worldY += step) {
-    const screenY = worldY * camera.zoom + camera.y
-    if (screenY < RULER_SIZE || screenY > canvas.height) continue
-
-    const tileY = Math.floor(worldY / config.tileSize)
-    ctx.beginPath()
-    ctx.moveTo(RULER_SIZE - 8, screenY)
-    ctx.lineTo(RULER_SIZE, screenY)
-    ctx.stroke()
-
-    const isMajor = tileY % (tileStep * 2) === 0
-    if (isMajor) {
-      ctx.fillText(tileY.toString(), RULER_SIZE - 10, screenY + 4)
-    }
-  }
-
-  ctx.strokeStyle = '#60a5fa'
-  ctx.lineWidth = 2
-  
-  const originScreenX = camera.x
-  const originScreenY = camera.y
-  
-  if (originScreenX >= RULER_SIZE && originScreenX <= canvas.width) {
-    ctx.beginPath()
-    ctx.moveTo(originScreenX, 0)
-    ctx.lineTo(originScreenX, RULER_SIZE)
-    ctx.stroke()
-  }
-  if (originScreenY >= RULER_SIZE && originScreenY <= canvas.height) {
-    ctx.beginPath()
-    ctx.moveTo(0, originScreenY)
-    ctx.lineTo(RULER_SIZE, originScreenY)
-    ctx.stroke()
-  }
-
-  ctx.strokeStyle = 'rgba(96, 165, 250, 0.3)'
-  ctx.lineWidth = 1
-  if (originScreenX >= RULER_SIZE && originScreenX <= canvas.width) {
-    ctx.beginPath()
-    ctx.moveTo(originScreenX, RULER_SIZE)
-    ctx.lineTo(originScreenX, canvas.height)
-    ctx.stroke()
-  }
-  if (originScreenY >= RULER_SIZE && originScreenY <= canvas.height) {
-    ctx.beginPath()
-    ctx.moveTo(RULER_SIZE, originScreenY)
-    ctx.lineTo(canvas.width, originScreenY)
-    ctx.stroke()
-  }
-
-  if (mouseTile) {
-    const mouseWorldX = mouseTile.x * config.tileSize
-    const mouseWorldY = mouseTile.y * config.tileSize
-    const mouseScreenX = mouseWorldX * camera.zoom + camera.x
-    const mouseScreenY = mouseWorldY * camera.zoom + camera.y
-    
-    ctx.strokeStyle = '#fbbf24'
-    ctx.lineWidth = 2
-    if (mouseScreenX >= RULER_SIZE) {
-      ctx.beginPath()
-      ctx.moveTo(mouseScreenX, 0)
-      ctx.lineTo(mouseScreenX, RULER_SIZE)
-      ctx.stroke()
-    }
-    if (mouseScreenY >= RULER_SIZE) {
-      ctx.beginPath()
-      ctx.moveTo(0, mouseScreenY)
-      ctx.lineTo(RULER_SIZE, mouseScreenY)
-      ctx.stroke()
-    }
-
-    ctx.fillStyle = '#fbbf24'
-    ctx.font = 'bold 10px sans-serif'
-    ctx.textAlign = 'left'
-    if (mouseScreenX >= RULER_SIZE) {
-      const labelX = mouseScreenX + 5
-      const labelY = RULER_SIZE - 5
-      ctx.fillText(`X: ${mouseTile.x}`, labelX, labelY)
-    }
-    if (mouseScreenY >= RULER_SIZE) {
-      const labelX = RULER_SIZE + 5
-      const labelY = mouseScreenY - 5
-      ctx.fillStyle = '#fbbf24'
-      ctx.fillText(`Y: ${mouseTile.y}`, labelX, labelY)
-    }
-  }
-
-  ctx.restore()
-}
-
-function calculateRulerTileStep(tileSize: number, zoom: number): number {
-  const minPixelsBetween = 60
-  const tilesPerStep = Math.max(1, Math.round(minPixelsBetween / (tileSize * zoom)))
-  
-  if (tilesPerStep <= 1) return 1
-  if (tilesPerStep <= 2) return 2
-  if (tilesPerStep <= 5) return 5
-  return 10
 }
 
 export function MapEditor({ config, onBack, initialData, initialTileTypes, onLoadMap }: MapEditorProps) {
@@ -189,7 +47,7 @@ export function MapEditor({ config, onBack, initialData, initialTileTypes, onLoa
   const [spacePressed, setSpacePressed] = useState(false)
   
   const [showPreview, setShowPreview] = useState(false)
-  const [showTutorial, setShowTutorial] = useState(true)
+  const [showTutorial, setShowTutorial] = useState(false)
   const [showSave, setShowSave] = useState(false)
   const [showLoad, setShowLoad] = useState(false)
   const [showImport, setShowImport] = useState(false)
@@ -232,20 +90,6 @@ export function MapEditor({ config, onBack, initialData, initialTileTypes, onLoa
         if (selectedShape === 'triangle') {
           const newPoints = [...trianglePoints, tilePos]
           setTrianglePoints(newPoints)
-          
-          if (newPoints.length >= 3) {
-            const tiles = fillTriangleWithPoints(newPoints[0], newPoints[1], newPoints[2], config)
-            setMapData(prev => {
-              const newMap = prev.map(row => [...row])
-              for (const t of tiles) {
-                if (isValidTile(t.x, t.y, config)) {
-                  newMap[t.y][t.x] = selectedTile
-                }
-              }
-              return newMap
-            })
-            setTrianglePoints([])
-          }
         } else {
           startAction(mapDataRef.current)
           setIsSelecting(true)
@@ -253,10 +97,25 @@ export function MapEditor({ config, onBack, initialData, initialTileTypes, onLoa
           setSelectionEnd(tilePos)
         }
       } else {
-        startAction(mapDataRef.current)
-        setIsBrushPainting(true)
-        if (isValidTile(tilePos.x, tilePos.y, config)) {
-          placeTile(tilePos.x, tilePos.y, selectedTile)
+        if (selectedShape === 'fill') {
+          startAction(mapDataRef.current)
+          const tiles = floodFill(tilePos.x, tilePos.y, mapDataRef.current, config)
+          setMapData(prev => {
+            const newMap = prev.map(row => [...row])
+            for (const t of tiles) {
+              if (isValidTile(t.x, t.y, config) && prev[t.y][t.x] !== selectedTile) {
+                newMap[t.y][t.x] = selectedTile
+              }
+            }
+            endAction(newMap)
+            return newMap
+          })
+        } else {
+          startAction(mapDataRef.current)
+          setIsBrushPainting(true)
+          if (isValidTile(tilePos.x, tilePos.y, config)) {
+            placeTile(tilePos.x, tilePos.y, selectedTile)
+          }
         }
       }
     }
@@ -267,7 +126,7 @@ export function MapEditor({ config, onBack, initialData, initialTileTypes, onLoa
         resetTile(tilePos.x, tilePos.y)
       }
     }
-  }, [camera, config, spacePressed, selectedTile, selectedShape, trianglePoints, startAction, placeTile, resetTile])
+  }, [camera, config, spacePressed, selectedTile, selectedShape, trianglePoints, startAction, endAction, placeTile, resetTile])
 
   const [isPanning, setIsPanning] = useState(false)
   const [isBrushPainting, setIsBrushPainting] = useState(false)
@@ -276,6 +135,31 @@ export function MapEditor({ config, onBack, initialData, initialTileTypes, onLoa
   const [selectionStart, setSelectionStart] = useState<Point | null>(null)
   const [selectionEnd, setSelectionEnd] = useState<Point | null>(null)
   const [mouseTile, setMouseTile] = useState<{ x: number; y: number } | null>(null)
+
+  useEffect(() => {
+    const handleKeyUp = (e: KeyboardEvent) => {
+      if (e.key === 'Shift' && trianglePoints.length >= 3) {
+        const tiles = fillPolygonWithPoints(trianglePoints, config)
+        setMapData(prev => {
+          const newMap = prev.map(row => [...row])
+          for (const t of tiles) {
+            if (isValidTile(t.x, t.y, config)) {
+              newMap[t.y][t.x] = selectedTile
+            }
+          }
+          return newMap
+        })
+        setTrianglePoints([])
+      } else if (e.key === 'Shift') {
+        if (trianglePoints.length > 0) {
+          setTrianglePoints([])
+        }
+      }
+    }
+
+    window.addEventListener('keyup', handleKeyUp)
+    return () => window.removeEventListener('keyup', handleKeyUp)
+  }, [trianglePoints, config, selectedTile, setMapData])
 
   useEffect(() => {
     isSelectingRef.current = isSelecting

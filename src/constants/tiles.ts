@@ -1,20 +1,4 @@
-export interface TileType {
-  color: string
-  label: string
-}
-
 export type SelectionShape = 'rectangle' | 'circle' | 'triangle' | 'line' | 'fill'
-
-export const TILE_TYPES: Record<number, TileType> = {
-  0: { color: '#4ade80', label: 'Grass' },
-  1: { color: '#374151', label: 'Wall' },
-  2: { color: '#3b82f6', label: 'Water' },
-  3: { color: '#a8a29e', label: 'Road' },
-  4: { color: '#166534', label: 'Base Area' },
-  5: { color: '#f9a8d4', label: 'Healing Area' },
-  7: { color: '#92400e', label: 'Buildings' },
-  8: { color: '#15803d', label: 'Trees' },
-}
 
 export const SELECTION_SHAPES: Record<SelectionShape, { label: string; icon: string }> = {
   rectangle: { label: 'Rectangle', icon: '▢' },

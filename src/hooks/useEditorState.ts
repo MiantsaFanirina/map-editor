@@ -8,7 +8,7 @@ import { saveCurrentSession } from '../utils/database'
 interface UseEditorStateOptions {
   config: MapConfig
   initialData?: number[][] | null
-  initialTileTypes?: string
+  initialTileTypes?: string | null
 }
 
 interface UseEditorStateReturn {

@@ -10,7 +10,7 @@ function App() {
   const [wentBack, setWentBack] = useState(false)
   const [mapKey, setMapKey] = useState(0)
   const [mapData, setMapData] = useState<number[][] | null>(null)
-  const [initialTileTypes, setInitialTileTypes] = useState<string | undefined>()
+  const [initialTileTypes, setInitialTileTypes] = useState<string | null>(null)
 
   useEffect(() => {
     initDatabase()
@@ -19,7 +19,7 @@ function App() {
   const handleStart = (newConfig: MapConfig, data?: number[][] | null, tileTypes?: string) => {
     setConfig(newConfig)
     setMapData(data || null)
-    setInitialTileTypes(tileTypes)
+    setInitialTileTypes(tileTypes ?? null)
     setWentBack(false)
     setMapKey(k => k + 1)
   }
@@ -31,6 +31,7 @@ function App() {
       tileSize: savedMap.tileSize,
     })
     setMapData(savedMap.data)
+    setInitialTileTypes(savedMap.tileTypes ?? null)
     setWentBack(false)
     setMapKey(k => k + 1)
   }

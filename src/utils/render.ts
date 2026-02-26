@@ -52,7 +52,7 @@ export function renderCanvas({
   ctx.translate(camera.x, camera.y)
   ctx.scale(camera.zoom, camera.zoom)
 
-  ctx.fillStyle = '#000000'
+  ctx.fillStyle = '#1f2937'
   ctx.fillRect(0, 0, config.cols * config.tileSize, config.rows * config.tileSize)
 
   for (let tileY = startTileY; tileY <= endTileY; tileY++) {
@@ -251,9 +251,10 @@ export function renderCanvas({
     if (trianglePoints.length >= 2) {
       ctx.beginPath()
       ctx.moveTo((trianglePoints[0].x + 0.5) * config.tileSize, (trianglePoints[0].y + 0.5) * config.tileSize)
-      ctx.lineTo((trianglePoints[1].x + 0.5) * config.tileSize, (trianglePoints[1].y + 0.5) * config.tileSize)
+      for (let i = 1; i < trianglePoints.length; i++) {
+        ctx.lineTo((trianglePoints[i].x + 0.5) * config.tileSize, (trianglePoints[i].y + 0.5) * config.tileSize)
+      }
       if (trianglePoints.length >= 3) {
-        ctx.lineTo((trianglePoints[2].x + 0.5) * config.tileSize, (trianglePoints[2].y + 0.5) * config.tileSize)
         ctx.closePath()
       }
       ctx.strokeStyle = '#fbbf24'
@@ -268,7 +269,7 @@ export function renderCanvas({
   renderRulers(ctx, canvas, camera, config, mouseTile)
 }
 
-function renderRulers(ctx: CanvasRenderingContext2D, canvas: HTMLCanvasElement, camera: Camera, config: MapConfig, mouseTile?: { x: number; y: number } | null): void {
+export function renderRulers(ctx: CanvasRenderingContext2D, canvas: HTMLCanvasElement, camera: Camera, config: MapConfig, mouseTile?: { x: number; y: number } | null): void {
   ctx.save()
 
   ctx.fillStyle = '#374151'
@@ -384,21 +385,24 @@ function renderRulers(ctx: CanvasRenderingContext2D, canvas: HTMLCanvasElement, 
     ctx.font = 'bold 10px sans-serif'
     ctx.textAlign = 'left'
     if (mouseScreenX >= RULER_SIZE) {
-      const labelX = mouseScreenX + 5
-      const labelY = RULER_SIZE - 5
-      ctx.fillText(`X: ${mouseTile.x}`, labelX, labelY)
+      ctx.fillStyle = 'rgba(55, 65, 81, 0.9)'
+      ctx.fillRect(mouseScreenX, 0, 50, RULER_SIZE)
+      ctx.fillStyle = '#fbbf24'
+      ctx.fillText(`X: ${mouseTile.x}`, mouseScreenX + 5, 12)
     }
     if (mouseScreenY >= RULER_SIZE) {
-      const labelX = RULER_SIZE + 5
-      const labelY = mouseScreenY - 5
-      ctx.fillText(`Y: ${mouseTile.y}`, labelX, labelY)
+      ctx.fillStyle = 'rgba(55, 65, 81, 0.9)'
+      ctx.fillRect(0, mouseScreenY - 10, RULER_SIZE, 16)
+      ctx.fillStyle = '#fbbf24'
+      ctx.textAlign = 'center'
+      ctx.fillText(`Y:${mouseTile.y}`, RULER_SIZE / 2, mouseScreenY)
     }
   }
 
   ctx.restore()
 }
 
-function calculateRulerTileStep(tileSize: number, zoom: number): number {
+export function calculateRulerTileStep(tileSize: number, zoom: number): number {
   const minPixelsBetween = 60
   const tilesPerStep = Math.max(1, Math.round(minPixelsBetween / (tileSize * zoom)))
   

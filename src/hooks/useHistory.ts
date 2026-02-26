@@ -42,22 +42,6 @@ export function useHistory(initialMap: number[][]) {
     forceUpdate()
   }, [forceUpdate])
 
-  const forceSave = useCallback((newMap: number[][]) => {
-    isActionInProgress.current = false
-    initialMapRef.current = null
-    
-    const currentIndex = historyIndexRef.current
-    historyRef.current = historyRef.current.slice(0, currentIndex + 1)
-    historyRef.current.push(newMap.map(row => [...row]))
-    
-    if (historyRef.current.length > MAX_HISTORY) {
-      historyRef.current.shift()
-    } else {
-      historyIndexRef.current++
-    }
-    forceUpdate()
-  }, [forceUpdate])
-
   const undo = useCallback((): number[][] | null => {
     if (historyIndexRef.current > 0) {
       historyIndexRef.current--
@@ -82,7 +66,6 @@ export function useHistory(initialMap: number[][]) {
   return {
     startAction,
     endAction,
-    forceSave,
     undo,
     redo,
     canUndo,
