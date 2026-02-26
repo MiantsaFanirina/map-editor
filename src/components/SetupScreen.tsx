@@ -31,14 +31,16 @@ export function SetupScreen({ onStart, onBack }: SetupScreenProps) {
   const [currentSession, setCurrentSession] = useState<{ config: MapConfig; data: number[][]; tileTypes: string } | null>(null)
 
   useEffect(() => {
-    const session = getCurrentSession()
-    if (session) {
-      setCurrentSession({
-        config: session.config,
-        data: session.data,
-        tileTypes: session.tileTypes,
-      })
-    }
+    initDatabase().then(() => {
+      const session = getCurrentSession()
+      if (session) {
+        setCurrentSession({
+          config: session.config,
+          data: session.data,
+          tileTypes: session.tileTypes || '',
+        })
+      }
+    })
   }, [])
 
   useEffect(() => {

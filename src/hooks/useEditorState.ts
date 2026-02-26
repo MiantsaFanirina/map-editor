@@ -2,7 +2,7 @@ import { useState, useCallback, useEffect } from 'react'
 import type { MapConfig } from '../types'
 import type { SelectionShape } from '../constants/tiles'
 import { useHistory } from './useHistory'
-import { useTileTypes } from './useTileTypes'
+import { useTileTypes, tileTypesToExport } from './useTileTypes'
 import { saveCurrentSession } from '../utils/database'
 
 interface UseEditorStateOptions {
@@ -57,7 +57,7 @@ export function useEditorState(options: UseEditorStateOptions): UseEditorStateRe
 
   useEffect(() => {
     const timer = setTimeout(() => {
-      saveCurrentSession(config, mapData, JSON.stringify(tileTypesHook.tileTypes))
+      saveCurrentSession(config, mapData, tileTypesToExport(tileTypesHook.tileTypes))
     }, 1000)
     return () => clearTimeout(timer)
   }, [config, mapData, tileTypesHook.tileTypes])

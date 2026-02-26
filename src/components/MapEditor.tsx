@@ -415,9 +415,9 @@ export function MapEditor({ config, onBack, initialData, initialTileTypes, onLoa
     const session = getCurrentSession()
     
     if (session?.savedMapId) {
-      const tileTypesJson = JSON.stringify(tileTypes)
-      saveMap('', config.rows, config.cols, config.tileSize, mapData, tileTypesJson, session.savedMapId)
-      saveCurrentSession(config, mapData, tileTypesJson, session.savedMapId)
+      const tileTypesContent = tileTypesToExport(tileTypes)
+      saveMap('', config.rows, config.cols, config.tileSize, mapData, tileTypesContent, session.savedMapId)
+      saveCurrentSession(config, mapData, tileTypesContent, session.savedMapId)
     } else {
       setShowSave(true)
     }

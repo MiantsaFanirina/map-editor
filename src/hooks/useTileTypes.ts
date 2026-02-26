@@ -15,12 +15,14 @@ const STORAGE_KEY = 'mapEditorTileTypes'
 
 export function useTileTypes(initialValue?: string | null) {
   const [tileTypes, setTileTypes] = useState<CustomTileType[]>(() => {
-    if (initialValue !== undefined && initialValue !== null) {
+    if (initialValue && initialValue.trim().length > 0) {
       try {
-        return tileTypesFromExport(initialValue)
+        const parsed = tileTypesFromExport(initialValue)
+        if (parsed.length > 0) return parsed
       } catch {
         try {
-          return JSON.parse(initialValue)
+          const parsed = JSON.parse(initialValue)
+          if (Array.isArray(parsed) && parsed.length > 0) return parsed
         } catch {
           // continue to default
         }

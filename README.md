@@ -1,73 +1,127 @@
-# React + TypeScript + Vite
+# TileMap Editor
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A modern, user-friendly tile map editor for creating 2D game maps. Built with React, TypeScript, and Tailwind CSS.
 
-Currently, two official plugins are available:
+![TileMap Editor](https://img.shields.io/badge/version-1.0.0-blue)
+![License](https://img.shields.io/badge/license-MIT-green)
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+## Features
 
-## React Compiler
+- **Intuitive Interface**: Clean, modern glass-morphism design
+- **Multiple Tile Shapes**: Rectangle, circle, triangle, line, and fill tools
+- **Custom Tile Types**: Create and manage unlimited tile types with custom colors and images
+- **History**: Undo/Redo support for all edits
+- **Camera Controls**: Pan and zoom to navigate your map
+- **Save & Load**: Save maps locally or export to TXT format
+- **Import**: Import maps from TXT files
+- **Keyboard Shortcuts**: Quick access to all tools
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## Getting Started
 
-## Expanding the ESLint configuration
+### Prerequisites
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+- Node.js 18+
+- npm or yarn
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+### Installation
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+```bash
+# Clone the repository
+git clone https://github.com/yourusername/tilemap-editor.git
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+# Navigate to the project directory
+cd tilemap-editor
+
+# Install dependencies
+npm install
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+### Development
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```bash
+# Start development server
+npm run dev
 ```
+
+### Build
+
+```bash
+# Build for web
+npm run build
+```
+
+### Create Desktop App
+
+```bash
+# Install dependencies first
+npm install
+
+# Build desktop app (Windows)
+npm run electron:build
+```
+
+The executable will be created in the `release` folder.
+
+## Usage
+
+### Creating a New Map
+
+1. Click "New Map" on the setup screen
+2. Set the number of rows, columns, and tile size
+3. Click "Start" to begin editing
+
+### Editing Tools
+
+- **Left Click**: Place tiles
+- **Right Click**: Erase tiles (place empty)
+- **Shift + Click**: Use shape tools (rectangle, circle, triangle)
+- **Space + Drag**: Pan the camera
+- **Mouse Wheel**: Zoom in/out
+
+### Keyboard Shortcuts
+
+| Key | Action |
+|-----|--------|
+| R | Rectangle tool |
+| C | Circle tool |
+| T | Triangle tool |
+| L | Line tool |
+| F | Fill tool |
+| Ctrl+Z | Undo |
+| Ctrl+Y / Ctrl+Shift+Z | Redo |
+| 0-9 | Quick select tile type |
+
+### Saving & Exporting
+
+- **Save to Database**: Save your map locally in the browser
+- **Download as TXT**: Export map as a text file
+- **Import**: Load maps from TXT files
+
+## Project Structure
+
+```
+src/
+├── components/       # React UI components
+├── hooks/           # Custom React hooks
+├── utils/           # Utility functions
+├── constants/       # App constants
+├── types/           # TypeScript types
+└── index.css        # Global styles
+```
+
+## Technology Stack
+
+- **Frontend**: React 19, TypeScript
+- **Styling**: Tailwind CSS 4
+- **Animation**: Framer Motion
+- **Icons**: React Icons
+- **Desktop**: Electron
+
+## License
+
+MIT License - see LICENSE file for details.
+
+## Acknowledgments
+
+- Built with Vite
+- Design inspired by modern glass-morphism aesthetics
