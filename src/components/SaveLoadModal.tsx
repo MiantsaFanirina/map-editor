@@ -3,6 +3,8 @@ import { initDatabase, getAllMaps, saveMap, loadMap, deleteMap, getCurrentSessio
 import type { CustomTileType } from '../hooks/useTileTypes'
 import { motion, AnimatePresence } from 'framer-motion'
 import { FaSave, FaFolderOpen, FaTrash, FaTimes } from 'react-icons/fa'
+import { Toast } from './Toast'
+import { tileTypesToExport } from '../hooks/useTileTypes'
 
 interface SaveLoadModalProps {
   mode: 'save' | 'load'
@@ -11,17 +13,22 @@ interface SaveLoadModalProps {
   tileTypes?: CustomTileType[]
   onLoad?: (map: SavedMap) => void
   onClose: () => void
+  onSaveComplete?: (message: string) => void
+  onDeleteComplete?: (message: string) => void
+  onLoadComplete?: (message: string) => void
 }
 
-export function SaveLoadModal({ mode, mapData, config, tileTypes, onLoad, onClose }: SaveLoadModalProps) {
+export function SaveLoadModal({ mode, mapData, config, tileTypes, onLoad, onClose, onSaveComplete, onDeleteComplete, onLoadComplete }: SaveLoadModalProps) {
   const [maps, setMaps] = useState<SavedMap[]>([])
   const [saveName, setSaveName] = useState('')
   const [loading, setLoading] = useState(true)
-  const [message, setMessage] = useState('')
   const [currentSavedId, setCurrentSavedId] = useState<number | undefined>()
+  const [showToast, setShowToast] = useState(false)
+  const [toastMessage, setToastMessage] = useState('')
 
   useEffect(() => {
-    initDatabase().then(() => {
+    const loadMaps = async () => {
+      await initDatabase()
       const allMaps = getAllMaps()
       setMaps(allMaps)
       
@@ -37,30 +44,33 @@ export function SaveLoadModal({ mode, mapData, config, tileTypes, onLoad, onClos
       }
       
       setLoading(false)
-    })
+    }
+    loadMaps()
   }, [mode])
 
   const handleSave = () => {
     if (!saveName.trim()) {
-      setMessage('Please enter a name')
+      setToastMessage('Please enter a name')
+      setShowToast(true)
       return
     }
-    const tileTypesJson = tileTypes ? JSON.stringify(tileTypes) : undefined
-    const id = saveMap(saveName.trim(), config.rows, config.cols, config.tileSize, mapData, tileTypesJson)
-    saveCurrentSession(config, mapData, tileTypesJson || '', id)
+    const tileTypesContent = tileTypes ? tileTypesToExport(tileTypes) : undefined
+    const existingMap = maps.find(m => m.name.toLowerCase() === saveName.trim().toLowerCase())
+    const id = saveMap(saveName.trim(), config.rows, config.cols, config.tileSize, mapData, tileTypesContent, existingMap?.id)
+    saveCurrentSession(config, mapData, tileTypesContent || '', id)
     setCurrentSavedId(id)
-    setMessage('Saved!')
-    setTimeout(() => {
-      setMaps(getAllMaps())
-      setMessage('')
-    }, 1000)
+    const message = existingMap ? 'Map updated!' : 'Map saved!'
+    onClose()
+    onSaveComplete?.(message)
   }
 
-  const handleLoad = (savedMap: SavedMap) => {
+  const handleLoad = async (savedMap: SavedMap) => {
+    await initDatabase()
     const loaded = loadMap(savedMap.id)
     if (loaded && onLoad) {
       onLoad(loaded)
       onClose()
+      onLoadComplete?.('Map loaded!')
     }
   }
 
@@ -68,6 +78,7 @@ export function SaveLoadModal({ mode, mapData, config, tileTypes, onLoad, onClos
     if (confirm('Delete this map?')) {
       deleteMap(id)
       setMaps(getAllMaps())
+      onDeleteComplete?.('Map deleted!')
     }
   }
 
@@ -122,40 +133,52 @@ export function SaveLoadModal({ mode, mapData, config, tileTypes, onLoad, onClos
               <input
                 type="text"
                 value={saveName}
-                onChange={(e) => setSaveName(e.target.value)}
+                onChange={(e) => { setSaveName(e.target.value); setCurrentSavedId(undefined) }}
                 placeholder="My awesome map"
                 className="w-full px-4 py-3 glass-input rounded-xl text-white"
                 autoFocus
               />
             </div>
+            
+            {currentSavedId && maps.length > 0 && (
+              <div className="space-y-2">
+                <p className="text-sm text-gray-400">Or update existing:</p>
+                <div className="max-h-32 overflow-auto scrollbar-thin space-y-1">
+                  {maps.slice(0, 5).map(m => (
+                    <button
+                      key={m.id}
+                      onClick={() => { setSaveName(m.name); setCurrentSavedId(m.id) }}
+                      className={`w-full text-left p-2 rounded-lg text-sm transition-colors ${
+                        currentSavedId === m.id 
+                          ? 'bg-indigo-600 text-white' 
+                          : 'glass hover:bg-white/10 text-gray-300'
+                      }`}
+                    >
+                      {m.name}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+            
             <div className="p-4 glass rounded-xl">
               {currentSavedId ? (
-                <p className="text-indigo-300 text-sm">Updating existing save</p>
+                <p className="text-indigo-300 text-sm">Updating: {maps.find(m => m.id === currentSavedId)?.name}</p>
+              ) : saveName.trim() && maps.some(m => m.name.toLowerCase() === saveName.trim().toLowerCase()) ? (
+                <p className="text-amber-400 text-sm">Will overwrite existing map</p>
               ) : (
-                <p className="text-gray-400 text-sm">Saving as new map</p>
+                <p className="text-gray-400 text-sm">Creating new save</p>
               )}
               <p className="text-gray-400 text-sm mt-1">Size: {config.cols}×{config.rows} tiles</p>
               {tileTypes && <p className="text-gray-400 text-sm">Tile types: {tileTypes.length}</p>}
             </div>
-            <AnimatePresence>
-              {message && (
-                <motion.p
-                  initial={{ opacity: 0, y: -10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0 }}
-                  className="text-indigo-300 text-sm font-medium"
-                >
-                  {message}
-                </motion.p>
-              )}
-            </AnimatePresence>
             <motion.button
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
               onClick={handleSave}
               className="w-full py-4 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 rounded-xl font-semibold flex items-center justify-center gap-2 cursor-pointer"
             >
-              <FaSave /> Save
+              <FaSave /> {currentSavedId ? 'Update' : 'Save'}
             </motion.button>
           </div>
         ) : (
@@ -208,6 +231,17 @@ export function SaveLoadModal({ mode, mapData, config, tileTypes, onLoad, onClos
           </div>
         )}
       </motion.div>
+      
+      <AnimatePresence>
+        {showToast && (
+          <Toast 
+            message={toastMessage} 
+            type={toastMessage.includes('Please') ? 'error' : 'success'}
+            duration={2500}
+            onClose={() => setShowToast(false)} 
+          />
+        )}
+      </AnimatePresence>
     </motion.div>
   )
 }

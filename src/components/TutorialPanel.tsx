@@ -123,7 +123,7 @@ export function TutorialPanel({ onClose }: TutorialPanelProps) {
                   transition={{ delay: 0.15 }}
                   className="text-2xl font-bold text-white"
                 >
-                  Welcome to Map Editor
+                  Welcome to TileMap Editor
                 </motion.h2>
                 <motion.p 
                   initial={{ opacity: 0, x: -20 }}

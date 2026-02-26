@@ -17,10 +17,10 @@ export function useTileTypes(initialValue?: string | null) {
   const [tileTypes, setTileTypes] = useState<CustomTileType[]>(() => {
     if (initialValue !== undefined && initialValue !== null) {
       try {
-        return JSON.parse(initialValue)
+        return tileTypesFromExport(initialValue)
       } catch {
         try {
-          return tileTypesFromExport(initialValue)
+          return JSON.parse(initialValue)
         } catch {
           // continue to default
         }

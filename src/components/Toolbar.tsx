@@ -46,7 +46,7 @@ export function Toolbar({
           className="text-xl font-bold gradient-text cursor-pointer"
           whileHover={{ scale: 1.02 }}
         >
-          Map Editor
+          TileMap Editor
         </motion.h1>
         <div className="h-6 w-px bg-white/10" />
         <span className="text-sm text-gray-400 bg-white/5 px-3 py-1 rounded-lg">

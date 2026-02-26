@@ -6,9 +6,10 @@ import { FaFileImport, FaTimes } from 'react-icons/fa'
 interface ImportModalProps {
   onImport: (data: { rows: number; cols: number; data: number[][]; tileTypes?: string }) => void
   onClose: () => void
+  onImportComplete?: (message: string) => void
 }
 
-export function ImportModal({ onImport, onClose }: ImportModalProps) {
+export function ImportModal({ onImport, onClose, onImportComplete }: ImportModalProps) {
   const [content, setContent] = useState('')
   const [error, setError] = useState('')
 
@@ -17,6 +18,7 @@ export function ImportModal({ onImport, onClose }: ImportModalProps) {
     if (result) {
       onImport(result)
       onClose()
+      onImportComplete?.('Map imported!')
     } else {
       setError('Invalid format. Use space-separated values with newlines between rows.')
     }

@@ -12,6 +12,7 @@ interface TileSidebarProps {
   onAddTile: (color: string, label: string, image?: string) => void
   onUpdateTile: (id: number, color: string, label: string, image?: string) => void
   onRemoveTile: (id: number) => void
+  onToast?: (message: string, type: 'success' | 'error') => void
 }
 
 export function TileSidebar({ 
@@ -22,6 +23,7 @@ export function TileSidebar({
   onAddTile,
   onUpdateTile,
   onRemoveTile,
+  onToast,
 }: TileSidebarProps) {
   const [isAdding, setIsAdding] = useState(false)
   const [editingId, setEditingId] = useState<number | null>(null)
@@ -50,6 +52,7 @@ export function TileSidebar({
       setNewColor('#6366f1')
       setNewImage(undefined)
       setIsAdding(false)
+      onToast?.('Tile added!', 'success')
     }
   }
 
@@ -64,7 +67,13 @@ export function TileSidebar({
     if (newLabel.trim()) {
       onUpdateTile(id, newColor, newLabel.trim(), newImage)
       cancelEditing()
+      onToast?.('Tile updated!', 'success')
     }
+  }
+
+  const handleRemoveTile = (id: number) => {
+    onRemoveTile(id)
+    onToast?.('Tile deleted!', 'success')
   }
 
   const startEditing = (tile: CustomTileType) => {
@@ -213,7 +222,7 @@ export function TileSidebar({
                     <motion.button
                       whileHover={{ scale: 1.1 }}
                       whileTap={{ scale: 0.9 }}
-                      onClick={(e) => { e.stopPropagation(); onRemoveTile(tile.id) }}
+                      onClick={(e) => { e.stopPropagation(); handleRemoveTile(tile.id) }}
                       className="p-2 bg-white/10 rounded-lg hover:bg-red-500/50 transition-colors cursor-pointer"
                       title="Delete"
                     >

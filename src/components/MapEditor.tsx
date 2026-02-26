@@ -4,7 +4,7 @@ import { useEditorState } from '../hooks/useEditorState'
 import { useCanvasLoop } from '../hooks/useCanvasLoop'
 import { screenToWorld, worldToTile, isValidTile, generatePreviewText, downloadMap, getTilesInShape, fillPolygonWithPoints, floodFill } from '../utils/coordinates'
 import { renderRulers } from '../utils/render'
-import { Toolbar, TileSidebar, PreviewModal, TutorialPanel, ShapeSelector, SaveLoadModal, ImportModal } from './index'
+import { Toolbar, TileSidebar, PreviewModal, TutorialPanel, ShapeSelector, SaveLoadModal, ImportModal, Toast } from './index'
 import { tileTypesToExport, tileTypesFromExport } from '../hooks/useTileTypes'
 import { saveMap, saveCurrentSession, getCurrentSession, initDatabase, type SavedMap } from '../utils/database'
 
@@ -51,6 +51,7 @@ export function MapEditor({ config, onBack, initialData, initialTileTypes, onLoa
   const [showSave, setShowSave] = useState(false)
   const [showLoad, setShowLoad] = useState(false)
   const [showImport, setShowImport] = useState(false)
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null)
 
   const mapDataRef = useRef(mapData)
   mapDataRef.current = mapData
@@ -427,6 +428,7 @@ export function MapEditor({ config, onBack, initialData, initialTileTypes, onLoa
     const tileTypesContent = tileTypesToExport(tileTypes)
     const combined = `MAP\n${content}\n\nTILES\n${tileTypesContent}`
     downloadMap(combined, `map_${config.cols}x${config.rows}.txt`)
+    setToast({ message: 'Map downloaded!', type: 'success' })
   }, [mapData, config, tileTypes])
 
   const handleLoadMap = (savedMap: SavedMap) => {
@@ -475,6 +477,7 @@ export function MapEditor({ config, onBack, initialData, initialTileTypes, onLoa
           onAddTile={addTileType}
           onUpdateTile={updateTileType}
           onRemoveTile={handleRemoveTile}
+          onToast={(msg, type) => setToast({ message: msg, type })}
         />
         
         <div ref={containerRef} 
@@ -520,6 +523,10 @@ export function MapEditor({ config, onBack, initialData, initialTileTypes, onLoa
           config={config}
           tileTypes={tileTypes}
           onClose={() => setShowSave(false)}
+          onSaveComplete={(message) => {
+            setShowSave(false)
+            setToast({ message, type: 'success' })
+          }}
         />
       )}
 
@@ -530,6 +537,11 @@ export function MapEditor({ config, onBack, initialData, initialTileTypes, onLoa
           config={config}
           onLoad={handleLoadMap}
           onClose={() => setShowLoad(false)}
+          onLoadComplete={(msg) => {
+            setShowLoad(false)
+            setToast({ message: msg, type: 'success' })
+          }}
+          onDeleteComplete={(msg) => setToast({ message: msg, type: 'success' })}
         />
       )}
 
@@ -537,11 +549,23 @@ export function MapEditor({ config, onBack, initialData, initialTileTypes, onLoa
         <ImportModal
           onImport={handleImport}
           onClose={() => setShowImport(false)}
+          onImportComplete={(msg) => {
+            setShowImport(false)
+            setToast({ message: msg, type: 'success' })
+          }}
         />
       )}
 
       {showTutorial && (
         <TutorialPanel onClose={() => setShowTutorial(false)} />
+      )}
+
+      {toast && (
+        <Toast
+          message={toast.message}
+          type={toast.type}
+          onClose={() => setToast(null)}
+        />
       )}
     </div>
   )
