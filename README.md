@@ -363,32 +363,6 @@ TILES
 
 ```
 
-**Example (simple map):**
-```
-MAP
-0 0 0 0 0
-0 1 1 0 0
-0 1 1 0 0
-0 0 0 0 0
-
-TILES
-0:#000000:Empty
-1:#6366f1:Grass
-2:#6366f1:Water
-```
-
-**With custom images (base64 encoded):**
-```
-MAP
-2 2 2
-2 1 2
-2 2 2
-
-TILES
-0:#000000:Empty
-1:#6366f1:Grass:data:image/png;base64,iVBORw0KGgo...
-2:#6366f1:Water:data:image/png;base64,iVBORw0KGgo...
-```
 
 - **MAP section**: Space-separated tile IDs (0 = empty)
 - **TILES section**: `id:hex_color:label[:base64_image]` (image is optional)
