@@ -145,7 +145,7 @@ Download `TileMap-Editor-1.0.1-portable.zip`, extract, and run `TileMap Editor.e
 | Brush | Default | Click/drag to paint tiles |
 | Rectangle | R | Shift + Click + Drag |
 | Circle | C | Shift + Click + Drag |
-| Triangle | T | Click 3 points, then Shift |
+| Polygon | T | Click 3 points, then Shift |
 | Line | L | Click start and end points |
 | Fill | F | Click to flood fill area |
 
@@ -171,7 +171,7 @@ Download `TileMap-Editor-1.0.1-portable.zip`, extract, and run `TileMap Editor.e
 |-----|--------|
 | R | Select Rectangle tool |
 | C | Select Circle tool |
-| T | Select Triangle tool |
+| T | Select Polygon tool |
 | L | Select Line tool |
 | F | Select Fill tool |
 
@@ -303,6 +303,8 @@ The executable will be created in the `release/` folder.
 
 The editor uses a simple text format for import/export:
 
+simple map:
+
 ```txt
 MAP
 0 0 0 0 0
@@ -317,8 +319,23 @@ TILES
 2:#00FF00:Water
 ```
 
+With custom images (base64 encoded):
+
+```txt
+MAP
+2 2 2
+2 1 2
+2 2 2
+
+TILES
+0:#000000:Empty
+1:#6366f1:Grass:data:image/png;base64,iVBORw0KGgo...
+2:#6366f1:Water:data:image/png;base64,iVBORw0KGgo...
+```
+
 ### Format Specification
 
+simple map: 
 ```
 MAP
 <row1_tile1> <row1_tile2> ... <row1_tileN>
@@ -329,6 +346,55 @@ TILES
 <id>:<color>:<label>
 <id>:<color>:<label>
 ...
+```
+
+With custom images (base64 encoded):
+
+```
+Here's the format of the exported TXT file:
+
+```
+MAP
+<row1_tile1> <row1_tile2> ... <row1_tileN>
+<row2_tile1> <row2_tile2> ... <row2_tileN>
+...
+<rowN_tile1> <rowN_tile2> ... <rowN_tileN>
+
+TILES
+<id>:<color>:<label>[:<base64_image>]
+<id>:<color>:<label>[:<base64_image>]
+...
+```
+
+**Example (simple map):**
+```
+MAP
+0 0 0 0 0
+0 1 1 0 0
+0 1 1 0 0
+0 0 0 0 0
+
+TILES
+0:#000000:Empty
+1:#6366f1:Grass
+2:#6366f1:Water
+```
+
+**With custom images (base64 encoded):**
+```
+MAP
+2 2 2
+2 1 2
+2 2 2
+
+TILES
+0:#000000:Empty
+1:#6366f1:Grass:data:image/png;base64,iVBORw0KGgo...
+2:#6366f1:Water:data:image/png;base64,iVBORw0KGgo...
+```
+
+- **MAP section**: Space-separated tile IDs (0 = empty)
+- **TILES section**: `id:hex_color:label[:base64_image]` (image is optional)
 ```
 
 ---
