@@ -360,10 +360,9 @@ TILES
 <id>:<color>:<label>[:<base64_image>]
 <id>:<color>:<label>[:<base64_image>]
 ...
-
 ```
 
-
+```
 - **MAP section**: Space-separated tile IDs (0 = empty)
 - **TILES section**: `id:hex_color:label[:base64_image]` (image is optional)
 ```
