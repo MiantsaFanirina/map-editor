@@ -351,10 +351,6 @@ TILES
 With custom images (base64 encoded):
 
 ```
-Here's the format of the exported TXT file:
-
-```
-MAP
 <row1_tile1> <row1_tile2> ... <row1_tileN>
 <row2_tile1> <row2_tile2> ... <row2_tileN>
 ...
@@ -364,6 +360,7 @@ TILES
 <id>:<color>:<label>[:<base64_image>]
 <id>:<color>:<label>[:<base64_image>]
 ...
+
 ```
 
 **Example (simple map):**
